@@ -78,7 +78,7 @@ npx -y -p @webos-tools/cli ares-novacom --device tv --getkey
 Type the passphrase from the TV when it asks. Then, from the folder with the downloaded file:
 
 ```bash
-npx -y -p @webos-tools/cli ares-install -d tv unterface_0.9.0.ipk
+npx -y -p @webos-tools/cli ares-install -d tv unterface_0.9.1.ipk
 ```
 
 ```bash
@@ -92,7 +92,8 @@ UnterFace opens in **SETUP**. Use the arrows to choose:
 - the six apps on your home screen,
 - what's plugged into two HDMI inputs and which ports,
 - power prices (Denmark only, otherwise leave it off),
-- DR teletext (Danish, otherwise leave it off).
+- DR teletext (Danish, otherwise leave it off),
+- sounds on or off.
 
 Then **SAVE & RESTART**. You can come back later: press ↑ from the top row of the home screen to reach SETUP.
 

@@ -8,7 +8,7 @@ More about it, with video: [staiola.studio/apps/unterface.html](https://staiola.
 
 ## Try it
 
-**Version 0.9 is out, as a beta.** Download `unterface_0.9.0.ipk` from the
+**Version 0.9.1 is out, as a beta.** Download `unterface_0.9.1.ipk` from the
 [latest release](https://github.com/Staiola/unterface-notes/releases/latest) and follow
 **[the install guide](INSTALL.md)**. It uses LG's free Developer Mode, so nothing is rooted, and it can be
 installed by hand or by asking Claude Code to do it.
@@ -19,7 +19,7 @@ What to expect:
 
 - A SETUP screen on first start, for your apps, HDMI inputs, power prices and teletext.
 - The flight radar is fixed to Copenhagen Airport, and power prices, DR TV and teletext are Danish.
-- No sound in this version.
+- Sounds are a set made for the public version: typing, the motion tracker and the sentry gun. SETUP can switch them off.
 - Home and quitting an app go to LG's home screen. Hold a number key to jump back, or run the optional Home
   watcher from the release on a computer that stays on.
 
@@ -31,6 +31,11 @@ The code itself is in a private repository; this one is for notes and releases.
 - By email: [jesper@staiola.studio](mailto:jesper@staiola.studio). Tell me which TV you have.
 
 ## Notes
+
+**23 October 2026, later.** Version 0.9.1 adds sound. The typing blip, the tracker's ping and the gun are
+synthesised in code; the sonar beep for contacts closing in is made on a synth in Logic. The tracker now
+pings on a steady beat while the contact beep speeds up and rises as they get closer, and the first contact
+of an attack shows at once.
 
 **23 October 2026.** Version 0.9, the first one for other TVs. New since the first notes: a SETUP screen,
 UnterFace's own standby screen instead of LG's clock, a smoother frame rate on the C5, symbols the fonts
