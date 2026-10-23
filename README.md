@@ -82,7 +82,7 @@ was made that way.
 ## Follow along
 
 - On GitHub: **Watch → Custom → Releases** on this repository and you get a notice when there is something to install.
-- By email: [jesper@staiola.studio](mailto:jesper@staiola.studio). Tell me which TV you have.
+- Found a problem? [Open an issue](https://github.com/Staiola/Ostromo-for-LG/issues) and say which TV model you have.
 
 ## Notes
 

@@ -129,7 +129,7 @@ Its README explains how to run it. It only works while that computer is awake an
 - The flight radar always shows the airspace around Copenhagen Airport. Other airports aren't in yet.
 - Power prices, DR TV and DR teletext are Danish. DR's live channels only play in Denmark.
 - App tiles launch apps by their LG app id. If a tile does nothing, that app may have a different id on your
-  TV: [tell me](mailto:jesper@staiola.studio?subject=Ostromo) which app and which TV.
+  TV: [open an issue](https://github.com/Staiola/Ostromo-for-LG/issues) with the app and your TV model.
 
 ## Rooting, in broad terms
 
@@ -144,4 +144,4 @@ and I don't give instructions or support for it.
 
 ## Questions
 
-[jesper@staiola.studio](mailto:jesper@staiola.studio?subject=Ostromo). Say which TV you have.
+[Open an issue](https://github.com/Staiola/Ostromo-for-LG/issues) on GitHub and say which TV model you have.
