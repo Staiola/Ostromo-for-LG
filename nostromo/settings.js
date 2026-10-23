@@ -45,7 +45,10 @@
 
   // the public build has only sound set B (see sound.js)
   var RELEASE = !!window.UNTERFACE_RELEASE;
-  var SOUND_CHOICES = RELEASE ? ['b', 'off'] : ['a', 'b', 'off'];
+  // set A is recordings that live only on the TV whose preset.js asks for them;
+  // anywhere else (the public build, or the code built from GitHub) it isn't offered
+  var HAS_SET_A = !RELEASE && !!window.UNTERFACE_PRESET && window.UNTERFACE_PRESET.sound === 'a';
+  var SOUND_CHOICES = HAS_SET_A ? ['a', 'b', 'off'] : ['b', 'off'];
   var SOUND_LABELS = { a: 'SET A · RECORDED', b: 'SET B · SYNTH', off: 'OFF' };
 
   var DEFAULTS = {
@@ -55,7 +58,7 @@
     teletext: false,
     // set A is recordings that live only on the TV that has them (preset.js
     // says so); everyone else starts on set B
-    sound: !RELEASE && window.UNTERFACE_PRESET && window.UNTERFACE_PRESET.sound === 'a' ? 'a' : 'b'
+    sound: HAS_SET_A ? 'a' : 'b'
   };
 
   function copy(o) { return JSON.parse(JSON.stringify(o)); }
