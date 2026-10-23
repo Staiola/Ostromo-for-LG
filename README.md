@@ -1,6 +1,17 @@
 # Ostromo for LG
 
-## TL;DR: not finished software. A home screen I made for my own LG TV, shared as is. Expect to tweak it, with some coding know-how or a coding agent like Claude Code, and use it at your own responsibility.
+> [!NOTE]
+> Not finished software. A home screen I made for my own LG TV, shared as is. Expect to tweak it, with some
+> coding know-how or a coding agent like Claude Code, and use it at your own responsibility.
+
+## TL;DR
+
+1. **On the TV:** install LG's free **Developer Mode** app, sign in with a free LG developer account, switch on
+   Dev Mode and Key Server, and note the IP address and passphrase.
+2. **Download** `ostromo_x.y.z.ipk` from the [latest release](https://github.com/Staiola/Ostromo-for-LG/releases/latest).
+3. **Install it:** paste the prompt from [the install guide](INSTALL.md) into Claude Code, or use the webOS Dev
+   Manager app.
+4. **Open Ostromo** and pick your apps and inputs in SETUP. Hold a number key on the remote to pin it.
 
 A home screen for LG webOS TVs that looks like the ship computers in *Alien* and *Aliens*: blue vector lines on black, a worn picture tube, and a boot card that plots itself on. It launches the streaming apps and HDMI inputs, and around them it shows live flights over Kastrup, today's electricity prices, webcams at research stations, NTS radio, DR's teletext and a sentry gun.
 
