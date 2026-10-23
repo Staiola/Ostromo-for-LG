@@ -6,14 +6,24 @@ A home screen for LG webOS TVs that looks like the ship computers in *Alien* and
 
 More about it, with video: [staiola.studio/apps/unterface.html](https://staiola.studio/apps/unterface.html)
 
-## Status
+## Try it
 
-It runs on my own LG C5 in developer mode. I am working on a version other people can install. The code lives in a private repository until then; this one is for notes and releases.
+**Version 0.9 is out, as a beta.** Download `unterface_0.9.0.ipk` from the
+[latest release](https://github.com/Staiola/unterface-notes/releases/latest) and follow
+**[the install guide](INSTALL.md)**. It uses LG's free Developer Mode, so nothing is rooted, and it can be
+installed by hand or by asking Claude Code to do it.
 
-What a release needs before it makes sense on someone else's TV:
+Tested on an LG C5 (2025, webOS 25). It's free, and it's your own risk.
 
-- A settings screen for the things that are mine today: which streaming apps and inputs, which airport on the radar, which power price region.
-- An install route that does not mean setting up LG's developer tools.
+What to expect:
+
+- A SETUP screen on first start, for your apps, HDMI inputs, power prices and teletext.
+- The flight radar is fixed to Copenhagen Airport, and power prices, DR TV and teletext are Danish.
+- No sound in this version.
+- Home and quitting an app go to LG's home screen. Hold a number key to jump back, or run the optional Home
+  watcher from the release on a computer that stays on.
+
+The code itself is in a private repository; this one is for notes and releases.
 
 ## Follow along
 
@@ -21,6 +31,11 @@ What a release needs before it makes sense on someone else's TV:
 - By email: [jesper@staiola.studio](mailto:jesper@staiola.studio). Tell me which TV you have.
 
 ## Notes
+
+**23 October 2026.** Version 0.9, the first one for other TVs. New since the first notes: a SETUP screen,
+UnterFace's own standby screen instead of LG's clock, a smoother frame rate on the C5, symbols the fonts
+lacked now drawn by the app, and the film's names swapped for its own (the computer is MA-TH-OR 6200, the
+gun an LD 567-C).
 
 **21 October 2026.** First public notes. The home screen, power prices, flight radar, NTS radio, teletext, DR TV, eight webcams and the sentry screen all work on the TV. Two things LG will not let a developer-mode app do: see which app is in front, so quitting Netflix lands on LG's home screen rather than this one, and read the list of installed apps.
 
