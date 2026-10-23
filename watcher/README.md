@@ -1,10 +1,10 @@
-# UnterFace Home watcher (optional)
+# Ostromo Home watcher (optional)
 
 LG doesn't let an app installed in Developer Mode replace the Home button, or even see which app is in
 front. So pressing Home, or quitting Netflix, lands on LG's own home screen.
 
 This small script fixes that from another computer on the same Wi-Fi. It connects to the TV the way LG's
-phone app does, watches which app is on screen, and the moment LG's home appears it opens UnterFace again.
+phone app does, watches which app is on screen, and the moment LG's home appears it opens Ostromo again.
 
 - Press **Home twice within three seconds** to stay on LG's home, for its settings.
 - It only works while the computer is awake and on the same network. A Mac that sleeps, or is away,

@@ -1,10 +1,10 @@
 {
   "id": "com.unterface.nostromo",
-  "version": "0.9.1",
-  "vendor": "UnterFace",
+  "version": "0.9.2",
+  "vendor": "Ostromo",
   "type": "web",
   "main": "index.html",
-  "title": "UnterFace",
+  "title": "Ostromo",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
   "bgColor": "#000000",

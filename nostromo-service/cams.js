@@ -12,7 +12,7 @@ var USAP_IMAGE_DIR = USAP + '/videoclipsandmaps/SouthPoleWebcam/';
 var CAMHD = 'https://rawdata.oceanobservatories.org/files/RS03ASHS/PN03B/CAMHDA301/';
 var STILL_CACHE_MS = 45 * 1000;
 var CLIP_CACHE_MS = 10 * 60 * 1000;
-var USER_AGENT = 'UnterFace/0.1 (personal TV display)';
+var USER_AGENT = 'Ostromo/0.9 (personal TV display)';
 
 // id -> how to get the current image
 var CAMS = {

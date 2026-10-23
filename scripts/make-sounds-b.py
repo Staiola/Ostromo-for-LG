@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sound set B: every sound UnterFace plays, synthesised from scratch, so the
+"""Sound set B: every sound Ostromo plays, synthesised from scratch, so the
 public build has sounds that are ours to hand out. Writes 16-bit mono WAVs and
 an index.json to nostromo/sfx-b/. Plain Python, no packages; the same seed
 gives the same files.
@@ -212,7 +212,7 @@ def main():
     with open(os.path.join(OUT, 'index.json'), 'w') as f:
         json.dump(files, f, indent=1)
     with open(os.path.join(OUT, 'README.txt'), 'w') as f:
-        f.write('Sound set B for UnterFace. The WAVs are synthesised from scratch by\n'
+        f.write('Sound set B for Ostromo. The WAVs are synthesised from scratch by\n'
                 'scripts/make-sounds-b.py; sonar.m4a was made on a synth in Logic by Jesper GB Henriksen.\n'
                 'No recordings or samples from anywhere else are used.\n')
 

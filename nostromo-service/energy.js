@@ -13,7 +13,7 @@ var cache = {}; // url -> { at, body }
 
 function get(url) {
   return new Promise(function (resolve, reject) {
-    var req = https.get(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'UnterFace/0.1 (personal TV display)' } }, function (res) {
+    var req = https.get(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'Ostromo/0.9 (personal TV display)' } }, function (res) {
       var body = '';
       res.setEncoding('utf8');
       res.on('data', function (d) { body += d; });

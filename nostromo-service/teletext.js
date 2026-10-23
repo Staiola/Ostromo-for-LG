@@ -28,7 +28,7 @@ function decode(s) {
 
 function get(url) {
   return new Promise(function (resolve, reject) {
-    var req = https.get(url, { headers: { 'User-Agent': 'UnterFace/0.1 (personal TV display)' } }, function (res) {
+    var req = https.get(url, { headers: { 'User-Agent': 'Ostromo/0.9 (personal TV display)' } }, function (res) {
       var chunks = [];
       res.on('data', function (d) { chunks.push(d); });
       res.on('end', function () {

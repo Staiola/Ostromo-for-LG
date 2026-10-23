@@ -1,17 +1,17 @@
-# UnterFace
+# Ostromo for LG
 
 ## TL;DR: not finished software. A home screen I made for my own LG TV, shared as is. Expect to tweak it, with some coding know-how or a coding agent like Claude Code, and use it at your own responsibility.
 
 A home screen for LG webOS TVs that looks like the ship computers in *Alien* and *Aliens*: blue vector lines on black, a worn picture tube, and a boot card that plots itself on. It launches the streaming apps and HDMI inputs, and around them it shows live flights over Kastrup, today's electricity prices, webcams at research stations, NTS radio, DR's teletext and a sentry gun.
 
-![The UnterFace home screen](images/home.jpg)
+![The Ostromo home screen](images/home.jpg)
 
-More about it, with video: [staiola.studio/apps/unterface](https://staiola.studio/apps/unterface)
+More about it, with video: [staiola.studio/apps/ostromo](https://staiola.studio/apps/ostromo)
 
 ## Try it
 
-Version 0.9.1 is a beta. Download `unterface_0.9.1.ipk` from the
-[latest release](https://github.com/Staiola/unterface-notes/releases/latest) and follow
+Version 0.9.2 is a beta. Download `ostromo_0.9.2.ipk` from the
+[latest release](https://github.com/Staiola/Ostromo-for-LG/releases/latest) and follow
 **[the install guide](INSTALL.md)**. It uses LG's free Developer Mode, so nothing is rooted, and it can be
 installed by hand or by asking Claude Code to do it.
 
@@ -65,7 +65,7 @@ Places to start tweaking:
 - The webcams: `nostromo/outposts.js` and `nostromo-service/cams.js`.
 - The CRT look: `nostromo/fx.js`.
 
-Pointing Claude Code at this repository and describing what you want changed works well. Most of UnterFace
+Pointing Claude Code at this repository and describing what you want changed works well. Most of Ostromo
 was made that way.
 
 ## Follow along
@@ -75,13 +75,17 @@ was made that way.
 
 ## Notes
 
+**23 October 2026, evening.** UnterFace is now called Ostromo, after its own boot card, and this
+repository is Ostromo for LG. Version 0.9.2 changes only the name; installing it over an earlier version
+keeps your setup.
+
 **23 October 2026, later.** The code is now in this repository, under the MIT licence. Version 0.9.1 adds
 sound. The typing blip, the tracker's ping and the gun are synthesised in code; the sonar beep for contacts
 closing in is made on a synth in Logic. The tracker now pings on a steady beat while the contact beep speeds
 up and rises as they get closer, and the first contact of an attack shows at once.
 
 **23 October 2026.** Version 0.9, the first one for other TVs. New since the first notes: a SETUP screen,
-UnterFace's own standby screen instead of LG's clock, a smoother frame rate on the C5, symbols the fonts
+Ostromo's own standby screen instead of LG's clock, a smoother frame rate on the C5, symbols the fonts
 lacked now drawn by the app, and the film's names swapped for its own (the computer is MA-TH-OR 6200, the
 gun an LD 567-C).
 
@@ -102,4 +106,4 @@ gun an LD 567-C).
 
 ---
 
-UnterFace is a fan's homage to the screens in *Alien* (1979), *Aliens* (1986) and *WarGames* (1983), and has nothing to do with the people who made them.
+Ostromo is a fan's homage to the screens in *Alien* (1979), *Aliens* (1986) and *WarGames* (1983), and has nothing to do with the people who made them.

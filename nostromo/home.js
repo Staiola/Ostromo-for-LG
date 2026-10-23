@@ -367,7 +367,7 @@
     blinks = [];
     ctx.fillStyle = C.bg;
     ctx.fillRect(0, 0, W, K.H);
-    K.header('>UNTERFACE // MA-TH-OR 6200', now);
+    K.header('>OSTROMO // MA-TH-OR 6200', now);
     drawLeft(now, t);
     drawMain(t);
   }

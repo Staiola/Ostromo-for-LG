@@ -15,7 +15,7 @@ var ROUTE_URL = 'https://api.adsbdb.com/v0/callsign/';
 var CACHE_MS = 4000;          // answer repeated polls from memory
 var ROUTE_TTL_MS = 6 * 3600 * 1000;
 var ROUTE_LOOKUPS_PER_POLL = 8;
-var USER_AGENT = 'UnterFace/0.1 (personal TV display)';
+var USER_AGENT = 'Ostromo/0.9 (personal TV display)';
 
 var lastResult = null, lastAt = 0, inflight = null;
 var routes = {}; // callsign -> { route, at }

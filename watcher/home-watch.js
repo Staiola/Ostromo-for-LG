@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Sends the TV's Home button to UnterFace instead of LG's home.
+// Sends the TV's Home button to Ostromo instead of LG's home.
 //
 // webOS won't let an app replace Home, or even see which app is in front, so
 // this runs on another always-on machine on the same network (here, the Mac).
 // It watches the foreground app over the TV's remote-control service and, the
-// moment LG's home appears, opens UnterFace on top. LG's home shows briefly.
+// moment LG's home appears, opens Ostromo on top. LG's home shows briefly.
 //
 //   node home-watch.js 192.168.1.50
 //
@@ -65,7 +65,7 @@ function watch() {
         }
         lastRedirect = now;
         ws.send({ type: 'request', id: 'launch', uri: 'ssap://system.launcher/launch', payload: { id: LAUNCHER } });
-        log('LG home -> UnterFace');
+        log('LG home -> Ostromo');
       });
       ws.send({ type: 'subscribe', id: 'fg', uri: 'ssap://com.webos.applicationManager/getForegroundAppInfo', payload: {} });
     });

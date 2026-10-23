@@ -93,5 +93,5 @@ http.createServer(function (req, res) {
     res.end(body);
   });
 }).listen(PORT, function () {
-  console.log('UnterFace preview on http://localhost:' + PORT);
+  console.log('Ostromo preview on http://localhost:' + PORT);
 });

@@ -23,10 +23,10 @@ grep -q 'preset.js' $WORK/app/index.html && { echo "preset still referenced"; ex
 grep -q 'UNTERFACE_RELEASE' $WORK/app/index.html || { echo "release flag missing"; exit 1; }
 
 ares-package $WORK/app $WORK/service -o $OUT >/dev/null
-mv $OUT/com.unterface.nostromo_${VERSION}_all.ipk $OUT/unterface_${VERSION}.ipk
+mv $OUT/com.unterface.nostromo_${VERSION}_all.ipk $OUT/ostromo_${VERSION}.ipk
 
-mkdir -p $WORK/watcher/unterface-home-watcher
-cp $ROOT/watcher/home-watch.js $ROOT/watcher/ssap.js $ROOT/watcher/install-mac.sh $ROOT/watcher/README.md $WORK/watcher/unterface-home-watcher/
-(cd $WORK/watcher && zip -qr $OUT/unterface-home-watcher_${VERSION}.zip unterface-home-watcher)
+mkdir -p $WORK/watcher/ostromo-home-watcher
+cp $ROOT/watcher/home-watch.js $ROOT/watcher/ssap.js $ROOT/watcher/install-mac.sh $ROOT/watcher/README.md $WORK/watcher/ostromo-home-watcher/
+(cd $WORK/watcher && zip -qr $OUT/ostromo-home-watcher_${VERSION}.zip ostromo-home-watcher)
 
 ls -la $OUT

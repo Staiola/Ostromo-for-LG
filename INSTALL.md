@@ -1,8 +1,8 @@
-# Installing UnterFace on an LG TV
+# Installing Ostromo on an LG TV
 
 ## TL;DR: not finished software. A home screen I made for my own LG TV, shared as is. Expect to tweak it, with some coding know-how or a coding agent like Claude Code, and use it at your own responsibility.
 
-UnterFace is a home screen for LG webOS TVs. It isn't in LG's app store; you install it yourself with LG's
+Ostromo is a home screen for LG webOS TVs. It isn't in LG's app store; you install it yourself with LG's
 free **Developer Mode**. Nothing on the TV is rooted or changed, and removing it is one click.
 
 It's a beta, tested on an LG C5 (2025, webOS 25). Newer LGs should be fine; older or cheaper sets may run it
@@ -17,7 +17,7 @@ with you. Everything is at your own responsibility.
 - An LG TV with webOS, on your home Wi-Fi.
 - A computer on the same Wi-Fi (Mac, Windows or Linux).
 - A free LG developer account, made at [webostv.developer.lge.com](https://webostv.developer.lge.com).
-- The file `unterface_x.y.z.ipk` from the [latest release](https://github.com/Staiola/unterface-notes/releases/latest).
+- The file `ostromo_x.y.z.ipk` from the [latest release](https://github.com/Staiola/Ostromo-for-LG/releases/latest).
 
 ## 1. Turn on Developer Mode on the TV
 
@@ -38,7 +38,7 @@ Claude plan for Claude Code.
 Open Claude Code in an empty folder and paste this, with your own details filled in:
 
 ```text
-Please install UnterFace on my LG TV.
+Please install Ostromo on my LG TV.
 
 - TV model: <your model, e.g. OLED55C5>
 - Developer Mode is on and Key Server is on.
@@ -49,8 +49,8 @@ Please install UnterFace on my LG TV.
    rather than installing anything globally if you can).
 2. Register the TV as a device named "tv" (port 9922, user "prisoner") and fetch its key
    with the passphrase.
-3. Download the newest unterface_*.ipk from
-   https://github.com/Staiola/unterface-notes/releases/latest
+3. Download the newest ostromo_*.ipk from
+   https://github.com/Staiola/Ostromo-for-LG/releases/latest
 4. Install it on the TV and start it (the app id is com.unterface.nostromo).
 5. Tell me what you did. Don't change any settings on the TV, and don't ask for my LG
    account password: it isn't needed.
@@ -67,7 +67,7 @@ watcher from the same release on this computer."*
 1. Download **webOS Dev Manager** for your computer from
    [github.com/webosbrew/dev-manager-desktop/releases](https://github.com/webosbrew/dev-manager-desktop/releases).
 2. Add your TV with the IP address and passphrase from step 1.
-3. Install the `unterface_x.y.z.ipk` file through it.
+3. Install the `ostromo_x.y.z.ipk` file through it.
 
 ### With the command line
 
@@ -84,7 +84,7 @@ npx -y -p @webos-tools/cli ares-novacom --device tv --getkey
 Type the passphrase from the TV when it asks. Then, from the folder with the downloaded file:
 
 ```bash
-npx -y -p @webos-tools/cli ares-install -d tv unterface_0.9.1.ipk
+npx -y -p @webos-tools/cli ares-install -d tv ostromo_0.9.2.ipk
 ```
 
 ```bash
@@ -93,7 +93,7 @@ npx -y -p @webos-tools/cli ares-launch -d tv com.unterface.nostromo
 
 ## 4. First start
 
-UnterFace opens in **SETUP**. Use the arrows to choose:
+Ostromo opens in **SETUP**. Use the arrows to choose:
 
 - the six apps on your home screen,
 - what's plugged into two HDMI inputs and which ports,
@@ -103,14 +103,14 @@ UnterFace opens in **SETUP**. Use the arrows to choose:
 
 Then **SAVE & RESTART**. You can come back later: press ↑ from the top row of the home screen to reach SETUP.
 
-**A one-press shortcut:** with UnterFace open, hold a number key on the remote (say **1**) and assign it.
-From then on, holding 1 opens UnterFace from anywhere, Netflix included.
+**A one-press shortcut:** with Ostromo open, hold a number key on the remote (say **1**) and assign it.
+From then on, holding 1 opens Ostromo from anywhere, Netflix included.
 
-## 5. Optional: make the Home button come back to UnterFace
+## 5. Optional: make the Home button come back to Ostromo
 
 LG doesn't let a Developer Mode app take over the Home button, so pressing Home or quitting Netflix lands on
-LG's own home screen. The **Home watcher** in the release (`unterface-home-watcher_x.y.z.zip`) fixes that from a
-computer that stays on: it watches the TV and switches straight back to UnterFace when LG's home appears.
+LG's own home screen. The **Home watcher** in the release (`ostromo-home-watcher_x.y.z.zip`) fixes that from a
+computer that stays on: it watches the TV and switches straight back to Ostromo when LG's home appears.
 Its README explains how to run it. It only works while that computer is awake and on the same Wi-Fi.
 
 ## Keep it working
@@ -118,7 +118,7 @@ Its README explains how to run it. It only works while that computer is awake an
 - **Developer Mode times out.** Apps installed this way stop opening when the Developer Mode session runs
   out. The Developer Mode app shows the time left; open it now and then and extend the session.
 - **Updating:** install a newer `.ipk` the same way. Your setup is kept.
-- **Removing:** uninstall UnterFace like any app, or switch Developer Mode off.
+- **Removing:** uninstall Ostromo like any app, or switch Developer Mode off.
 
 ## What works where
 
@@ -127,19 +127,19 @@ Its README explains how to run it. It only works while that computer is awake an
 - The flight radar always shows the airspace around Copenhagen Airport. Other airports aren't in yet.
 - Power prices, DR TV and DR teletext are Danish. DR's live channels only play in Denmark.
 - App tiles launch apps by their LG app id. If a tile does nothing, that app may have a different id on your
-  TV: [tell me](mailto:jesper@staiola.studio?subject=UnterFace) which app and which TV.
+  TV: [tell me](mailto:jesper@staiola.studio?subject=Ostromo) which app and which TV.
 
 ## Rooting, in broad terms
 
-Everything above uses LG's official Developer Mode. If you want UnterFace to *be* the TV's home screen for
+Everything above uses LG's official Developer Mode. If you want Ostromo to *be* the TV's home screen for
 good, with no timeout and no extra computer for the Home button, you would have to look into **rooting** your
 LG. The [webOS Homebrew](https://www.webosbrew.org) community documents what's possible for which models and
 firmware.
 
 That's entirely your own responsibility. Rooting depends on your exact firmware, LG closes the holes in
-updates, it can void your warranty, and done wrong it can leave the TV unusable. UnterFace doesn't need it,
+updates, it can void your warranty, and done wrong it can leave the TV unusable. Ostromo doesn't need it,
 and I don't give instructions or support for it.
 
 ## Questions
 
-[jesper@staiola.studio](mailto:jesper@staiola.studio?subject=UnterFace). Say which TV you have.
+[jesper@staiola.studio](mailto:jesper@staiola.studio?subject=Ostromo). Say which TV you have.

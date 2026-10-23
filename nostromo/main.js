@@ -279,7 +279,7 @@
   }
 
   // --- standby -----------------------------------------------------------------
-  // webOS asks running apps before it starts its clock screensaver; UnterFace
+  // webOS asks running apps before it starts its clock screensaver; Ostromo
   // says no and, after STANDBY_MS without a key, shows its own instead: nearly
   // black, one dim line drifting so nothing burns into the OLED. Any key wakes
   // it. Never while DR TV is playing.

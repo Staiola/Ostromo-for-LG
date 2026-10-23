@@ -87,7 +87,7 @@
         if (draft.sound === 'a') return ['RECORDED SOUNDS,', 'ON THIS TV ONLY.'];
         if (draft.sound === 'b') return ['SYNTHESISED SOUNDS:', 'TYPING, TRACKER, GUN.'];
         return ['NO SOUND EFFECTS.', 'RADIO AND TV STILL PLAY.'];
-      case 'save': return dirty() ? ['WRITES THE SETUP TO THE TV', 'AND RESTARTS UNTERFACE.'] : ['NO CHANGES TO SAVE.'];
+      case 'save': return dirty() ? ['WRITES THE SETUP TO THE TV', 'AND RESTARTS OSTROMO.'] : ['NO CHANGES TO SAVE.'];
     }
     return [];
   }
