@@ -4,7 +4,11 @@ UnterFace is a home screen for LG webOS TVs. It isn't in LG's app store; you ins
 free **Developer Mode**. Nothing on the TV is rooted or changed, and removing it is one click.
 
 It's a beta, tested on an LG C5 (2025, webOS 25). Newer LGs should be fine; older or cheaper sets may run it
-slowly or not at all. Use it at your own risk.
+slowly or not at all.
+
+I built it for my own TV and have made it more generic, but it's a beta: expect rough edges, and expect to
+tweak it for your own setup. That takes some coding know-how, or a coding agent such as Claude Code to do it
+with you. Everything is at your own responsibility.
 
 **You need:**
 

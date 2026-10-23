@@ -13,7 +13,11 @@ More about it, with video: [staiola.studio/apps/unterface.html](https://staiola.
 **[the install guide](INSTALL.md)**. It uses LG's free Developer Mode, so nothing is rooted, and it can be
 installed by hand or by asking Claude Code to do it.
 
-Tested on an LG C5 (2025, webOS 25). It's free, and it's your own risk.
+Tested on an LG C5 (2025, webOS 25). It's free.
+
+I built it for my own TV and have made it more generic, but it's a beta: expect rough edges, and expect to
+tweak it for your own setup. That takes some coding know-how, or a coding agent such as Claude Code to do it
+with you. Everything is at your own responsibility.
 
 What to expect:
 
