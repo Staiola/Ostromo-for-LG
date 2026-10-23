@@ -1,0 +1,16 @@
+{
+  "id": "com.unterface.nostromo",
+  "version": "0.9.1",
+  "vendor": "UnterFace",
+  "type": "web",
+  "main": "index.html",
+  "title": "UnterFace",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgColor": "#000000",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "requiredACG": [
+    "application.launcher"
+  ]
+}

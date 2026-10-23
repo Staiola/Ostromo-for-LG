@@ -1,0 +1,7 @@
+dist/
+node_modules/
+.DS_Store
+# your own setup, from nostromo/preset.example.js
+nostromo/preset.js
+# sound set A: recordings of your own, if you have any
+nostromo/sfx/

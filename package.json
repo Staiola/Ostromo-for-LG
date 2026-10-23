@@ -1,0 +1,14 @@
+{
+  "name": "unterface",
+  "version": "0.9.1",
+  "private": true,
+  "description": "An Alien-style home screen for LG webOS TVs",
+  "license": "MIT",
+  "scripts": {
+    "nostromo:preview": "node nostromo-service/dev-server.js 8081",
+    "nostromo:package": "ares-package nostromo nostromo-service -o dist",
+    "nostromo:install": "npm run nostromo:package && ares-install -d tv dist/com.unterface.nostromo_$(node -p \"require('./nostromo/appinfo.json').version\")_all.ipk && ares-launch -d tv com.unterface.nostromo",
+    "release": "scripts/build-release.sh",
+    "sounds:b": "python3 scripts/make-sounds-b.py"
+  }
+}

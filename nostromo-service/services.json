@@ -1,0 +1,10 @@
+{
+  "id": "com.unterface.nostromo.service",
+  "description": "Flight and electricity price feeds for the UnterFace launcher",
+  "services": [
+    {
+      "name": "com.unterface.nostromo.service",
+      "description": "Flight and electricity price feeds for the UnterFace launcher"
+    }
+  ]
+}

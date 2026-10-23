@@ -1,5 +1,7 @@
 # Installing UnterFace on an LG TV
 
+## TL;DR: not finished software. A home screen I made for my own LG TV, shared as is. Expect to tweak it, with some coding know-how or a coding agent like Claude Code, and use it at your own responsibility.
+
 UnterFace is a home screen for LG webOS TVs. It isn't in LG's app store; you install it yourself with LG's
 free **Developer Mode**. Nothing on the TV is rooted or changed, and removing it is one click.
 

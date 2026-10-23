@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UnterFace</title>
+  <style>
+    /* bundled so the TV needs no font CDN (OFL, see fonts/) */
+    @font-face { font-family: "Michroma"; src: url("fonts/Michroma-Regular.ttf") format("truetype"); font-display: block; }
+    @font-face { font-family: "Share Tech Mono"; src: url("fonts/ShareTechMono-Regular.ttf") format("truetype"); font-display: block; }
+    /* teletext: Bedstead (CC0), a recreation of the SAA5050 character set */
+    @font-face { font-family: "Bedstead"; src: url("fonts/Bedstead.otf") format("opentype"); font-display: block; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+    #screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #wrap {
+      position: relative;
+      width: min(100vw, 177.78vh);
+      height: min(56.25vw, 100vh);
+      animation: flicker 6s infinite steps(1);
+    }
+    #stage, #fx {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #wrap { transition: transform 4s ease-in-out; }
+    /* CRT: scanlines + vignette, no per-frame cost */
+    #crt {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.28) 3px),
+        radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.65) 100%);
+    }
+    @keyframes flicker {
+      0% { opacity: 1; }
+      47% { opacity: 0.94; }
+      48% { opacity: 1; }
+      83% { opacity: 0.97; }
+      84% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="screen">
+    <div id="wrap">
+      <canvas id="stage" width="1920" height="1080"></canvas>
+      <canvas id="fx" width="1920" height="1080"></canvas>
+      <div id="crt"></div>
+    </div>
+  </div>
+  <script src="coastline.js"></script>
+  <script src="world.js"></script>
+  <script src="kit.js"></script>
+  <script src="preset.js"></script>
+  <script src="settings.js"></script>
+  <script src="sound.js"></script>
+  <script src="radar.js"></script>
+  <script src="power.js"></script>
+  <script src="radio.js"></script>
+  <script src="tv.js"></script>
+  <script src="outposts.js"></script>
+  <script src="teletext.js"></script>
+  <script src="sentry.js"></script>
+  <script src="setup.js"></script>
+  <script src="home.js"></script>
+  <script src="fx.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "name": "com.unterface.nostromo.service",
+  "version": "0.1.0",
+  "description": "Flight and electricity price feeds for the UnterFace launcher",
+  "main": "service.js",
+  "private": true
+}
