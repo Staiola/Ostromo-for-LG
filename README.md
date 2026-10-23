@@ -83,6 +83,7 @@ was made that way.
 
 - On GitHub: **Watch → Custom → Releases** on this repository and you get a notice when there is something to install.
 - Found a problem? [Open an issue](https://github.com/Staiola/Ostromo-for-LG/issues) and say which TV model you have.
+- Like it? You can [support Ostromo on Ko-fi](https://ko-fi.com/F2F0LWM3Y).
 
 ## Notes
 
