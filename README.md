@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > Not finished software. A home screen I made for my own LG TV, shared as is. Expect to tweak it, with some
-> coding know-how or a coding agent like Claude Code, and use it at your own responsibility.
+> coding know-how or a coding agent like Claude Code, and use it at your own risk.
 
 ## TL;DR
 
@@ -30,7 +30,7 @@ Tested on an LG C5 (2025, webOS 25). It's free.
 
 I built it for my own TV and have made it more generic, but it's a beta: expect rough edges, and expect to
 tweak it for your own setup. That takes some coding know-how, or a coding agent such as Claude Code to do it
-with you. Everything is at your own responsibility.
+with you. Use it at your own risk.
 
 What to expect:
 

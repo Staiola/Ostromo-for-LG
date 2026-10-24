@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > Not finished software. A home screen I made for my own LG TV, shared as is. Expect to tweak it, with some
-> coding know-how or a coding agent like Claude Code, and use it at your own responsibility.
+> coding know-how or a coding agent like Claude Code, and use it at your own risk.
 
 Ostromo is a home screen for LG webOS TVs. It isn't in LG's app store; you install it yourself with LG's
 free **Developer Mode**. Nothing on the TV is rooted or changed, and removing it is one click.
@@ -12,7 +12,7 @@ slowly or not at all.
 
 I built it for my own TV and have made it more generic, but it's a beta: expect rough edges, and expect to
 tweak it for your own setup. That takes some coding know-how, or a coding agent such as Claude Code to do it
-with you. Everything is at your own responsibility.
+with you. Use it at your own risk.
 
 **You need:**
 
