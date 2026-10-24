@@ -120,7 +120,7 @@ Its README explains how to run it. It only works while that computer is awake an
 - **Developer Mode times out.** Apps installed this way stop opening when the Developer Mode session runs
   out. The Developer Mode app shows the time left; open it now and then and extend the session.
 - **Updating:** install a newer `.ipk` the same way. Your setup is kept.
-- **Removing:** uninstall Ostromo like any app, or switch Developer Mode off.
+- **Removing:** see [Going back to how it was](#going-back-to-how-it-was) below.
 
 ## What works where
 
@@ -141,6 +141,33 @@ firmware.
 That's entirely your own responsibility. Rooting depends on your exact firmware, LG closes the holes in
 updates, it can void your warranty, and done wrong it can leave the TV unusable. Ostromo doesn't need it,
 and I don't give instructions or support for it.
+
+## Going back to how it was
+
+Nothing here changes your TV's firmware or its own settings, and LG's updates keep coming as normal. To undo
+everything:
+
+1. **Remove Ostromo.** On the TV, open your apps, hold OK on Ostromo (or use the remote's menu on it) and
+   choose to delete it, like any other app. Or, from a computer:
+
+   ```bash
+   npx -y -p @webos-tools/cli ares-install -d tv --remove com.unterface.nostromo
+   ```
+2. **Remove the Home watcher, if you set it up.** On a Mac, run `./install-mac.sh uninstall` from its folder,
+   then delete the folder. The pairing key it saved is in `~/.config/unterface/`; delete that folder too.
+3. **Switch Developer Mode off.** Open the Developer Mode app and turn **Dev Mode Status** off. The TV
+   restarts, and apps installed through Developer Mode are gone.
+4. **Delete the Developer Mode app** like any other app, if you won't use it again. Your LG developer
+   account can stay or go; nothing on the TV depends on it any more.
+5. **On your computer,** if you used LG's command-line tools, make them forget the TV:
+
+   ```bash
+   npx -y -p @webos-tools/cli ares-setup-device -r tv
+   ```
+
+   If you used webOS Dev Manager, remove the TV in it and uninstall the app.
+
+The TV's home screen is LG's own again, exactly as before.
 
 ## Questions
 
