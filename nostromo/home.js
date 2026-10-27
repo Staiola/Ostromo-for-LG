@@ -105,8 +105,13 @@
     K.luna('luna://com.webos.applicationManager/listLaunchPoints', {})
       .then(function (res) {
         var points = res.launchPoints || [];
+        function listed(id) { return points.some(function (p) { return p.id === id; }); }
         APPS.forEach(function (app) {
-          if (!app || !app.match || points.some(function (p) { return p.id === app.id; })) return;
+          if (!app || !app.match) return;
+          // Android: the package name, whatever the app calls itself on this TV
+          var pkg = (app.android || []).filter(listed)[0];
+          if (pkg) { app.id = pkg; return; }
+          if (listed(app.id)) return;
           var found = points.filter(function (p) { return app.match.test(p.title || ''); })[0];
           if (found) app.id = found.id;
         });

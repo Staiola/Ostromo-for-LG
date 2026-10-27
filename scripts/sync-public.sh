@@ -12,10 +12,15 @@ rm -rf $PUB/nostromo $PUB/nostromo-service $PUB/watcher $PUB/scripts
 cp -R $ROOT/nostromo $ROOT/nostromo-service $ROOT/watcher $ROOT/scripts $PUB/
 rm -rf $PUB/nostromo/sfx
 rm -f $PUB/nostromo/preset.js
+# the Android TV version has its own public repository (sync-public-android.sh)
+rm -f $PUB/scripts/sync-public-android.sh $PUB/scripts/make-android-key.sh
 find $PUB -name .DS_Store -delete
 
-# nothing personal may go out
-if grep -rn -I -E "192\.168\.50\.|AB98B7|skrivtiljesper" $PUB --exclude-dir=.git --exclude=sync-public.sh; then
+# nothing personal may go out. The details to look for live outside the
+# repository, so this script can be public: one extended regex per line.
+PATTERNS=~/.config/ostromo/private-patterns
+[[ -s $PATTERNS ]] || { echo "missing $PATTERNS (the personal details to keep out, one regex per line)"; exit 1; }
+if grep -rn -I -E -f $PATTERNS $PUB --exclude-dir=.git; then
   echo "personal details found: not syncing"; exit 1
 fi
 echo "synced into $PUB; review with git status there"

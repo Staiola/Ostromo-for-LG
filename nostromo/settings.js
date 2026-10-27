@@ -8,19 +8,20 @@
   var KEY = 'unterface.settings';
   var SKIP_BOOT = 'unterface.skipBoot';
 
-  // Streaming apps a viewing tile can launch. webOS app ids; `match` finds the
-  // real id by title where the TV allows listing launch points (dev-mode apps
-  // are refused, so check an id by opening the app and running
-  // `ares-launch -d tv --running`).
+  // Streaming apps a viewing tile can launch. `id` is the webOS app id;
+  // `android` the Android TV package names, looked for first on Android, as a
+  // name can differ between TVs and app versions. `match` finds the app by
+  // its title where neither is listed (on webOS, dev-mode apps are refused,
+  // so check an id by opening the app and running `ares-launch -d tv --running`).
   var APPS = {
-    netflix: { name: 'NETFLIX', code: 'NFX', id: 'netflix', match: /netflix/i },
-    youtube: { name: 'YOUTUBE', code: 'YTB', id: 'youtube.leanback.v4', match: /youtube/i },
-    prime: { name: 'PRIME', code: 'PRM', id: 'amazon', match: /prime video|amazon/i },
-    disney: { name: 'DISNEY+', code: 'DIS', id: 'com.disney.disneyplus-prod', match: /disney/i },
-    hbo: { name: 'HBO MAX', code: 'HBO', id: 'com.wbd.stream', match: /hbo/i },
-    appletv: { name: 'APPLE TV', code: 'ATV', id: 'com.apple.appletv', match: /apple tv/i },
-    spotify: { name: 'SPOTIFY', code: 'SPT', id: 'spotify-beehive', match: /spotify/i },  // id not checked
-    plex: { name: 'PLEX', code: 'PLX', id: 'cdp-30', match: /plex/i },                   // id not checked
+    netflix: { name: 'NETFLIX', code: 'NFX', id: 'netflix', android: ['com.netflix.ninja'], match: /netflix/i },
+    youtube: { name: 'YOUTUBE', code: 'YTB', id: 'youtube.leanback.v4', android: ['com.google.android.youtube.tv'], match: /youtube/i },
+    prime: { name: 'PRIME', code: 'PRM', id: 'amazon', android: ['com.amazon.amazonvideo.livingroom'], match: /prime video|amazon/i },
+    disney: { name: 'DISNEY+', code: 'DIS', id: 'com.disney.disneyplus-prod', android: ['com.disney.disneyplus'], match: /disney/i },
+    hbo: { name: 'HBO MAX', code: 'HBO', id: 'com.wbd.stream', android: ['com.wbd.stream'], match: /hbo|^max$/i },
+    appletv: { name: 'APPLE TV', code: 'ATV', id: 'com.apple.appletv', android: ['com.apple.atve.androidtv.appletv'], match: /apple tv/i },
+    spotify: { name: 'SPOTIFY', code: 'SPT', id: 'spotify-beehive', android: ['com.spotify.tv.android'], match: /spotify/i },  // webOS id not checked
+    plex: { name: 'PLEX', code: 'PLX', id: 'cdp-30', android: ['com.plexapp.android'], match: /plex/i },                   // webOS id not checked
     drtv: { name: 'DR TV', code: 'DR', screen: 'tv', foot: 'DR1 · DR2 · TVA' }      // Denmark only
   };
   var APP_CHOICES = ['none', 'netflix', 'youtube', 'prime', 'disney', 'hbo', 'appletv', 'spotify', 'plex', 'drtv'];

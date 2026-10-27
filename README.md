@@ -21,7 +21,7 @@ More about it, with video: [staiola.studio/apps/ostromo](https://staiola.studio/
 
 ## Try it
 
-Version 0.10.0 is a beta. Download `ostromo_0.10.0.ipk` from the
+Version 0.10.1 is a beta. Download `ostromo_0.10.1.ipk` from the
 [latest release](https://github.com/Staiola/Ostromo-for-LG/releases/latest) and follow
 **[the install guide](INSTALL.md)**. It uses LG's free Developer Mode, so nothing is rooted, and it can be
 installed by hand or by asking Claude Code to do it.
@@ -92,6 +92,10 @@ was made that way.
 - Like it? You can [support Ostromo on Ko-fi](https://ko-fi.com/F2F0LWM3Y).
 
 ## Notes
+
+**28 October 2026.** Version 0.10.1 is for the new [Android TV version](https://github.com/Staiola/Ostromo-for-Android-TV):
+there, a streaming tile now finds its app by its Android package name before its title. On an LG TV it works
+as 0.10 did.
 
 **27 October 2026.** Version 0.10 goes beyond Denmark. In SETUP the radar can now watch 14 airports in
 Scandinavia, Europe, the US and Australia, each with its own map, runways and towns, and New York zoomed in

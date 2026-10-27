@@ -33,7 +33,8 @@ cp $ROOT/watcher/home-watch.js $ROOT/watcher/ssap.js $ROOT/watcher/install-mac.s
 # Android: the release build is already the public one (android-tv/app/build.gradle.kts)
 if [[ -f ~/.android/ostromo-release.properties ]]; then
   (cd $ROOT/android-tv && JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@17} ./gradlew -q assembleRelease)
-  cp $ROOT/android-tv/app/build/outputs/apk/release/app-release.apk $OUT/ostromo-android-tv_${VERSION}.apk
+  # one name for every version, so releases/latest/download/ostromo-android-tv.apk always works
+  cp $ROOT/android-tv/app/build/outputs/apk/release/app-release.apk $OUT/ostromo-android-tv.apk
 else
   echo "no Android signing key (~/.android/ostromo-release.properties): APK skipped"
 fi

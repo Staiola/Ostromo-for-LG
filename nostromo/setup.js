@@ -77,7 +77,8 @@
         var k = draft.viewing[r.i], a = S.APPS[k];
         if (!a) return ['AN EMPTY CHANNEL.', 'IT SHOWS AS NO CARRIER.'];
         if (a.screen) return ['DR LIVE TV, BUILT IN.', 'DR1, DR2, DR TVA, RAMASJANG.', 'WORKS IN DENMARK ONLY.'];
-        return ['LAUNCHES THE TV APP', 'APP ID  ' + a.id.toUpperCase(), 'THE APP HAS TO BE INSTALLED.'];
+        var appId = window.OstromoAndroid && a.android ? a.android[0] : a.id;
+        return ['LAUNCHES THE TV APP', 'APP ID  ' + appId.toUpperCase(), 'THE APP HAS TO BE INSTALLED.'];
       case 'device': return ['WHAT IS PLUGGED IN.', 'NAMES THE INPUT TILE.', 'OFF LEAVES THE TILE EMPTY.'];
       case 'port': return ['THE HDMI SOCKET ON THE TV', 'IT IS PLUGGED INTO.'];
       case 'power':
