@@ -1,7 +1,8 @@
 #!/bin/zsh
 # Builds what goes on a GitHub Release: the app without this TV's preset
-# (so other TVs start in SETUP with generic defaults), and the optional Home
-# watcher as a zip. Output in dist/release/.
+# (so other TVs start in SETUP with generic defaults), the optional Home
+# watcher as a zip, and the Google TV / Android TV app as a signed APK (when
+# the signing key is set up, see the README). Output in dist/release/.
 #   scripts/build-release.sh
 set -e
 ROOT=${0:A:h:h}
@@ -28,5 +29,13 @@ mv $OUT/com.unterface.nostromo_${VERSION}_all.ipk $OUT/ostromo_${VERSION}.ipk
 mkdir -p $WORK/watcher/ostromo-home-watcher
 cp $ROOT/watcher/home-watch.js $ROOT/watcher/ssap.js $ROOT/watcher/install-mac.sh $ROOT/watcher/README.md $WORK/watcher/ostromo-home-watcher/
 (cd $WORK/watcher && zip -qr $OUT/ostromo-home-watcher_${VERSION}.zip ostromo-home-watcher)
+
+# Android: the release build is already the public one (android-tv/app/build.gradle.kts)
+if [[ -f ~/.android/ostromo-release.properties ]]; then
+  (cd $ROOT/android-tv && JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@17} ./gradlew -q assembleRelease)
+  cp $ROOT/android-tv/app/build/outputs/apk/release/app-release.apk $OUT/ostromo-android-tv_${VERSION}.apk
+else
+  echo "no Android signing key (~/.android/ostromo-release.properties): APK skipped"
+fi
 
 ls -la $OUT

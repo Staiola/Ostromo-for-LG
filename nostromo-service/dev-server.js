@@ -1,5 +1,5 @@
 // Local preview server: serves the app (../nostromo) and stands in for the
-// webOS service: /api/aircraft and /api/eds/<dataset>?<query>.
+// webOS service: /api/aircraft, /api/eds/<dataset>?<query>, /api/nyiso and the rest.
 // Usage: node nostromo-service/dev-server.js [port]
 'use strict';
 
@@ -28,8 +28,14 @@ var TYPES = {
 http.createServer(function (req, res) {
   var url = req.url.split('?')[0];
 
+  // /api/aircraft?icao=&lat=&lon= -> adsb.fi around that airport
   if (url === '/api/aircraft') {
-    feed.getAircraft()
+    var q = {};
+    (req.url.split('?')[1] || '').split('&').forEach(function (kv) {
+      var i = kv.indexOf('=');
+      if (i > 0) q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+    });
+    feed.getAircraft(q)
       .then(function (data) {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify(data));
@@ -62,6 +68,20 @@ http.createServer(function (req, res) {
       .then(function (data) {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify(data));
+      })
+      .catch(function (err) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: String(err.message || err) }));
+      });
+    return;
+  }
+
+  // /api/nyiso?day=YYYYMMDD -> NYISO day-ahead zonal prices, { csv }
+  if (url === '/api/nyiso') {
+    energy.fetchNyiso((/[?&]day=(\d+)/.exec(req.url) || [])[1])
+      .then(function (csv) {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ csv: csv }));
       })
       .catch(function (err) {
         res.writeHead(502, { 'Content-Type': 'application/json' });

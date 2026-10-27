@@ -15,7 +15,7 @@
     { name: 'COMMS', code: 'NTS', screen: 'radio', foot: 'NTS LIVE' },
     { name: 'OUTPOSTS', code: 'SAT', screen: 'outposts', foot: 'ICE · CITY · ABYSS' },
     viewing(3), viewing(4), viewing(5),
-    SETUP.teletext ? { name: 'TELETEXT', code: 'TXT', screen: 'teletext', foot: 'DR TEKST-TV' } : null,
+    SETUP.teletext !== 'off' ? { name: 'TELETEXT', code: 'TXT', screen: 'teletext', foot: window.Settings.TELETEXT[SETUP.teletext].name } : null,
     { name: 'SENTRY', code: 'LD', screen: 'sentry', foot: 'LD 567-C' }
   ];
   var VIEW_COLS = 3; // columns 0-2 are viewing apps, 3-4 the system's screens
@@ -26,6 +26,7 @@
     return { name: inp.device, port: 'HDMI ' + inp.port, id: 'com.webos.app.hdmi' + inp.port };
   });
   var POWER_AREA = (window.UNTERFACE_POWER && window.UNTERFACE_POWER.area) || 'OFF';
+  var IATA = (window.UNTERFACE_AIRPORT || window.AIRPORTS.EKCH).iata;
   // which grid columns each input tile covers (the row has 5 columns)
   var INPUT_COLS = [[0, 1], [2, 3, 4]];
 
@@ -202,14 +203,14 @@
 
     var power = window.Power.summary();
     var ink = !power ? C.text : power.band === 'HIGH' ? C.red : power.band === 'LOW' ? C.green : C.white;
-    field('KR/KWH', power ? power.now.toFixed(2) : '----', x, LEFT.y + 268, ink);
+    field(window.Power.UNIT, power ? window.Power.format(power.now) : '----', x, LEFT.y + 268, ink);
     field('OPTIMAL', power && power.cheapest ? power.cheapest : '--:--', x, LEFT.y + 316, C.green);
     field('TRAFFIC', K.pad(window.Radar.flights().length) + ' AC', x, LEFT.y + 364);
     if (focus.col < 0 && focus.row === 0) K.brackets(POWER.x, POWER.y, POWER.w, POWER.h, C.pink, 22, 6);
 
     var focused = focus.col < 0 && focus.row > 0;
     if (focused) K.brackets(MINI.x - MINI.r, MINI.y - MINI.r, MINI.r * 2, MINI.r * 2, C.pink, 26, 14);
-    text('CPH TRAFFIC', MINI.x, MINI.y + MINI.r + 52, { size: 22, color: focused ? C.white : C.text, spacing: 4, align: 'center' });
+    text(IATA + ' TRAFFIC', MINI.x, MINI.y + MINI.r + 52, { size: 22, color: focused ? C.white : C.text, spacing: 4, align: 'center' });
     text(focused ? '▸ OPEN RADAR' : 'RADAR · BLUE', MINI.x, MINI.y + MINI.r + 88,
       { size: 22, color: focused ? C.cyan : C.lineDim, spacing: 3, align: 'center', glow: focused ? 10 : false });
   }
@@ -261,10 +262,10 @@
     var y = ROW_Y[2] + TILE_H + 40, x = GRID_X, w = MAIN.w - PADX * 2, h = 110;
     K.box(x, y, w, h, C.line, 2);
     var target = itemAt(focus.row, focus.col);
-    var NAMES = { settings: 'SYSTEM SETUP', radar: 'CPH RADAR', power: 'POWER GRID ' + POWER_AREA, radio: 'COMMS // NTS LIVE', outposts: 'OUTPOST MONITOR',
-      teletext: 'TELETEXT // DR', tv: 'VISUAL FEED // DR', sentry: 'SENTRY // LD 567-C', empty: 'NO CARRIER' };
+    var NAMES = { settings: 'SYSTEM SETUP', radar: IATA + ' RADAR', power: 'POWER GRID ' + POWER_AREA, radio: 'COMMS // NTS LIVE', outposts: 'OUTPOST MONITOR',
+      teletext: 'TELETEXT // ' + (window.Settings.TELETEXT[SETUP.teletext].short || ''), tv: 'VISUAL FEED // DR', sentry: 'SENTRY // LD 567-C', empty: 'NO CARRIER' };
     var IDS = { settings: 'CONFIG', radar: 'SCREEN 02', power: 'SCREEN 03', radio: 'BROADCAST RX', outposts: 'REMOTE NET',
-      teletext: 'TEKST-TV', tv: 'DR BROADCAST NET', sentry: 'PERIMETER DEFENCE', empty: '----' };
+      teletext: window.Settings.TELETEXT[SETUP.teletext].name || 'TELETEXT', tv: 'DR BROADCAST NET', sentry: 'PERIMETER DEFENCE', empty: '----' };
     var name = NAMES[target.kind] || target.item.name;
     var id = IDS[target.kind] || target.item.id;
     var io = { size: 30, color: C.white, spacing: 2 };

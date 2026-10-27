@@ -1,5 +1,5 @@
-// Radar screen: a NORAD-style view of air traffic around Copenhagen Airport.
-// Traffic is simulated until a live feed is wired in.
+// Radar screen: a NORAD-style view of air traffic around the airport chosen in
+// SETUP (airports.js). Live from adsb.fi; simulated while the feed is down.
 (function () {
   'use strict';
 
@@ -9,35 +9,37 @@
 
 
   var TIMESCALE = 3; // simulated traffic runs 3x real time so it visibly moves
-  var CPH = { lon: 12.6508, lat: 55.6180 };
-  var COS0 = Math.cos(CPH.lat * Math.PI / 180);
+  var AP = window.UNTERFACE_AIRPORT || window.AIRPORTS.EKCH;
+  var CENTER = { lon: AP.lon, lat: AP.lat };
+  var COS0 = Math.cos(CENTER.lat * Math.PI / 180);
   var KM_PER_DEG = 111.2;
 
   var MAP = { x: 96, y: 136, w: 1140, h: 844 };
   var SIDE = { x: 1260, w: 564 };
-  var SCALE = 470; // px per degree latitude
+  // px per degree latitude; a busy airport zooms in so its traffic spreads out
+  var SCALE = AP.scale || 470;
   var ORIGIN = { x: MAP.x + MAP.w * 0.6, y: MAP.y + MAP.h * 0.6 };
 
   // --- projection ------------------------------------------------------------
 
   function project(lon, lat) {
     return {
-      x: ORIGIN.x + (lon - CPH.lon) * SCALE * COS0,
-      y: ORIGIN.y - (lat - CPH.lat) * SCALE
+      x: ORIGIN.x + (lon - CENTER.lon) * SCALE * COS0,
+      y: ORIGIN.y - (lat - CENTER.lat) * SCALE
     };
   }
 
   function offset(bearingDeg, km) {
     var b = bearingDeg * Math.PI / 180;
     return {
-      lon: CPH.lon + km * Math.sin(b) / (KM_PER_DEG * COS0),
-      lat: CPH.lat + km * Math.cos(b) / KM_PER_DEG
+      lon: CENTER.lon + km * Math.sin(b) / (KM_PER_DEG * COS0),
+      lat: CENTER.lat + km * Math.cos(b) / KM_PER_DEG
     };
   }
 
   function bearingTo(lon, lat) {
     var toRad = Math.PI / 180;
-    var p1 = CPH.lat * toRad, p2 = lat * toRad, dl = (lon - CPH.lon) * toRad;
+    var p1 = CENTER.lat * toRad, p2 = lat * toRad, dl = (lon - CENTER.lon) * toRad;
     var y = Math.sin(dl) * Math.cos(p2);
     var x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
     return (Math.atan2(y, x) / toRad + 360) % 360;
@@ -45,19 +47,12 @@
 
   // --- static map layer (drawn once, blitted every frame) --------------------
 
-  var PLACES = [
-    ['KØBENHAVN', 12.568, 55.676, 'r'], ['MALMÖ', 13.003, 55.605, 'r'],
-    ['HELSINGØR', 12.592, 56.036, 'l'], ['HELSINGBORG', 12.694, 56.046, 'r'],
-    ['ROSKILDE', 12.080, 55.642, 'l'], ['KØGE', 12.182, 55.458, 'l'],
-    ['LUND', 13.191, 55.705, 'r'], ['TRELLEBORG', 13.157, 55.375, 'r'],
-    ['LANDSKRONA', 12.830, 55.870, 'r'], ['HILLERØD', 12.310, 55.930, 'l'],
-    ['YSTAD', 13.820, 55.430, 'r'],
-    ['NÆSTVED', 11.760, 55.230, 'r']
-  ];
-
-  // rough Øresund median line, Kattegat to the Baltic
-  var BORDER = [[12.50, 56.30], [12.62, 56.10], [12.70, 55.95], [12.79, 55.78],
-    [12.84, 55.64], [12.78, 55.52], [12.82, 55.40], [12.95, 55.20], [13.20, 54.95]];
+  function polyline(line, n) {
+    for (var i = 0; i < n; i++) {
+      var p = project(line[i][0], line[i][1]);
+      if (i === 0) K.ctx.moveTo(p.x, p.y); else K.ctx.lineTo(p.x, p.y);
+    }
+  }
 
   function drawStatic(progress) {
     K.ctx.fillStyle = C.bg;
@@ -68,31 +63,30 @@
     K.ctx.rect(MAP.x + 8, MAP.y + 8, MAP.w - 16, MAP.h - 16);
     K.ctx.clip();
 
-    // coastline, drawn on progressively during boot
-    K.ctx.beginPath();
-    window.COASTLINE.forEach(function (line) {
-      var n = Math.max(2, Math.floor(line.length * progress));
-      for (var i = 0; i < n; i++) {
-        var p = project(line[i][0], line[i][1]);
-        if (i === 0) K.ctx.moveTo(p.x, p.y); else K.ctx.lineTo(p.x, p.y);
-      }
-    });
+    // coastline, drawn on progressively during boot; lakes and rivers dimmer
     K.ctx.lineJoin = 'round';
+    K.ctx.beginPath();
+    AP.coast().forEach(function (line) { polyline(line, Math.max(2, Math.floor(line.length * progress))); });
     glowStroke(C.line, 2);
+    if (AP.water) {
+      K.ctx.beginPath();
+      AP.water().forEach(function (line) { polyline(line, Math.max(2, Math.floor(line.length * progress))); });
+      glowStroke(C.lineDim, 2);
+    }
 
     if (progress >= 1) {
-      // national border through the Sound
-      K.ctx.beginPath();
-      BORDER.forEach(function (pt, i) {
-        var p = project(pt[0], pt[1]);
-        if (i === 0) K.ctx.moveTo(p.x, p.y); else K.ctx.lineTo(p.x, p.y);
+      // a national border, where one crosses the map
+      if (AP.borders) {
+        K.ctx.beginPath();
+        AP.borders().forEach(function (line) { polyline(line, line.length); });
+        K.ctx.setLineDash([2, 7]);
+        glowStroke(C.green, 2);
+        K.ctx.setLineDash([]);
+      }
+      (AP.areas || []).forEach(function (a) {
+        var p = project(a[1], a[2]);
+        text(a[0], p.x, p.y, { color: C.green, size: 22, spacing: 4 });
       });
-      K.ctx.setLineDash([2, 7]);
-      glowStroke(C.green, 2);
-      K.ctx.setLineDash([]);
-      var dk = project(11.95, 55.80), se = project(13.45, 55.90);
-      text('DANMARK', dk.x, dk.y, { color: C.green, size: 22, spacing: 4 });
-      text('SVERIGE', se.x, se.y, { color: C.green, size: 22, spacing: 4 });
 
       // range rings: 25 km control zone in pink, 50/100/150 km dim
       [50, 100].forEach(function (km) {
@@ -109,7 +103,7 @@
       glowStroke(C.pink, 2.5);
 
       // towns
-      PLACES.forEach(function (pl) {
+      AP.places.forEach(function (pl) {
         var p = project(pl[1], pl[2]);
         K.ctx.beginPath();
         K.ctx.rect(p.x - 4, p.y - 4, 8, 8);
@@ -118,20 +112,18 @@
         text(pl[0], p.x + (right ? 12 : -12), p.y + 6, { color: C.amber, size: 22, align: right ? 'left' : 'right', spacing: 1 });
       });
 
-      // Kastrup: star + runways 04/22 and 12/30
-      drawRunway(55.6045, 12.6290, 55.6290, 12.6620);
-      drawRunway(55.5960, 12.6530, 55.6160, 12.6860);
-      drawRunway(55.6280, 12.6280, 55.6160, 12.6680);
+      // the airport: star + runways
+      AP.runways.forEach(function (r) { drawRunway(r[0], r[1], r[2], r[3]); });
       drawStar(ORIGIN.x - 34, ORIGIN.y + 30, 13);
-      text('EKCH', ORIGIN.x - 54, ORIGIN.y + 72, { color: C.white, size: 22, spacing: 3, align: 'center' });
+      text(AP.icao, ORIGIN.x - 54, ORIGIN.y + 72, { color: C.white, size: 22, spacing: 3, align: 'center' });
 
       // corner crosshairs, Nostromo style
       crosshair(MAP.x + 70, MAP.y + 70, 26);
       crosshair(MAP.x + MAP.w - 70, MAP.y + MAP.h - 70, 26);
 
       // the big thin title, NORAD style
-      text('KASTRUP', MAP.x + 48, MAP.y + 190, { font: TITLE, size: 58, color: C.text, spacing: 10, glow: 14 });
-      text('TERMINAL AREA', MAP.x + 48, MAP.y + 262, { font: TITLE, size: 58, color: C.text, spacing: 10, glow: 14 });
+      text(AP.title[0], MAP.x + 48, MAP.y + 190, { font: TITLE, size: 58, color: C.text, spacing: 10, glow: 14 });
+      text(AP.title[1], MAP.x + 48, MAP.y + 262, { font: TITLE, size: 58, color: C.text, spacing: 10, glow: 14 });
     }
     K.ctx.restore();
 
@@ -167,6 +159,7 @@
   // --- simulated traffic -----------------------------------------------------
 
   var ROUTES = [
+    ['KØBENHAVN', 'EKCH', 12.65, 55.62, ['SAS', 'NOZ'], 33000],
     ['OSLO', 'ENGM', 11.10, 60.19, ['SAS', 'NOZ'], 33000],
     ['STOCKHOLM', 'ESSA', 17.92, 59.65, ['SAS', 'NOZ'], 33000],
     ['HELSINKI', 'EFHK', 24.96, 60.32, ['FIN', 'SAS'], 36000],
@@ -184,7 +177,10 @@
     ['ISTANBUL', 'LTFM', 28.75, 41.26, ['THY'], 39000],
     ['DUBAI', 'OMDB', 55.36, 25.25, ['UAE'], 39000],
     ['ALICANTE', 'LEAL', -0.56, 38.28, ['NOZ', 'SAS'], 37000]
-  ].map(function (r) {
+  ].filter(function (r) {
+    // not the airport itself, or one next door (Newark from Kennedy)
+    return Math.abs(r[3] - CENTER.lat) + Math.abs(r[2] - CENTER.lon) * COS0 > 2.5;
+  }).map(function (r) {
     return { city: r[0], icao: r[1], bearing: bearingTo(r[2], r[3]), airlines: r[4], cruise: r[5] };
   });
 
@@ -277,18 +273,40 @@
 
   var POLL_MS = 5000;
   var LIVE_TIMEOUT_MS = 30000; // no good poll for this long -> back to sim
-  var live = { on: false, at: 0, byId: {}, list: [] };
+  var live = { on: false, at: 0, byId: {}, list: [], total: 0 }; // total: in range, before shown()
 
   function pollFeed() {
-    K.data('aircraft')
+    K.data('aircraft', { icao: AP.icao, lat: AP.lat, lon: AP.lon })
       .then(ingest)
       .catch(function () {})
       .then(function () { setTimeout(pollFeed, POLL_MS); });
   }
 
+  // Around a busy airport (JFK: 300+ in range) drawing everything is clutter
+  // and costs frames on the TV: keep the airport's own traffic, the nearest
+  // 10 departures and 10 arrivals (known routes and airborne first), then the
+  // nearest of the rest, up to 40 in all.
+  var OWN_PER_BOARD = 10, MAX_SHOWN = 40;
+
+  function shown(list) {
+    if (list.length <= MAX_SHOWN) return list;
+    function rank(a) { return (a.route ? 0 : 2) + (a.ground ? 1 : 0); }
+    var own = [];
+    ['DEP', 'ARR'].forEach(function (dir) {
+      own = own.concat(list.filter(function (a) { return a.dir === dir; })
+        .sort(function (a, b) { return (rank(a) - rank(b)) || a.distKm - b.distKm; })
+        .slice(0, OWN_PER_BOARD));
+    });
+    // the rest: nearest first, but airborne before parked at a neighbour
+    var rest = list.filter(function (a) { return own.indexOf(a) < 0; })
+      .sort(function (a, b) { return (a.ground - b.ground) || a.distKm - b.distKm; });
+    return own.concat(rest.slice(0, MAX_SHOWN - own.length));
+  }
+
   function ingest(data) {
     var now = Date.now(), seen = {};
-    (data.aircraft || []).forEach(function (a) {
+    live.total = (data.aircraft || []).length;
+    shown(data.aircraft || []).forEach(function (a) {
       seen[a.id] = true;
       var prev = live.byId[a.id];
       var fixAt = now - (a.seenPos || 0) * 1000;
@@ -347,8 +365,15 @@
     }
   }
 
+  // nearest first, but flights with a known route ahead of the ones only
+  // guessed from height and distance (around New York, with three airports
+  // close together, most guesses are LaGuardia or Newark traffic), and the
+  // ones still in the air ahead of those already on the ground
   function board(dir) {
-    return view.filter(function (v) { return v.dir === dir; }).sort(function (a, b) { return a.distKm - b.distKm; });
+    function rank(v) { return (v.city === '----' ? 2 : 0) + (v.ground ? 1 : 0); }
+    return view.filter(function (v) { return v.dir === dir; }).sort(function (a, b) {
+      return (rank(a) - rank(b)) || a.distKm - b.distKm;
+    });
   }
 
   // --- selection + input -----------------------------------------------------
@@ -409,11 +434,12 @@
 
   function inkFor(dir) { return dir === 'DEP' ? C.cyan : dir === 'ARR' ? C.green : C.lineDim; }
 
-  // below the Danish transition altitude (5000 ft) altitude is given in feet
+  // below the transition altitude (5000 ft in Scandinavia, 6000 at Heathrow,
+  // 18000 in the US) altitude is given in feet
   function flightLevel(v) {
     if (v.ground) return 'GND';
     if (v.alt === null) return 'FL---';
-    if (v.alt < 5000) return Math.max(0, Math.round(v.alt / 100) * 100) + ' FT';
+    if (v.alt < AP.transition) return Math.max(0, Math.round(v.alt / 100) * 100) + ' FT';
     return 'FL' + pad(Math.round(v.alt / 100), 3);
   }
 
@@ -449,7 +475,9 @@
     glowStroke(ours ? C.white : C.text, 2);
     K.ctx.globalAlpha = 1;
 
-    if ((showAllTags && ours) || isSelected) {
+    // tags for our traffic in the air with a known route (around New York a
+    // guess is often LaGuardia's); others only when selected
+    if ((showAllTags && ours && !v.ground && v.city !== '----') || isSelected) {
       text(v.cs, p.x + 16, p.y - 6, { size: 22, color: color, glow: 6 + lit * 10 });
       text(flightLevel(v), p.x + 16, p.y + 18, { size: 22, color: color, glow: false });
     }
@@ -487,7 +515,7 @@
     text(label, x + 30, y + 46, { size: 22, color: color, spacing: 5 });
     if (v.type) text(v.type + (v.reg ? '  ' + v.reg : ''), x + w - 30, y + 46, { size: 22, color: C.text, spacing: 2, align: 'right' });
     text(v.cs, x + 30, y + 112, { font: TITLE, size: 54, color: C.white, spacing: 6 });
-    var route = v.dir === 'DEP' ? 'EKCH ▸ ' + v.icao : v.dir === 'ARR' ? v.icao + ' ▸ EKCH' : v.dir === 'GND' ? 'EKCH' : 'TRANSIT';
+    var route = v.dir === 'DEP' ? AP.icao + ' ▸ ' + v.icao : v.dir === 'ARR' ? v.icao + ' ▸ ' + AP.icao : v.dir === 'GND' ? AP.icao : 'TRANSIT';
     text(route + '  ' + v.city, x + 30, y + 150, { size: 24, color: C.text, spacing: 1 });
 
     var col = w / 2 - 44;
@@ -536,7 +564,8 @@
   function drawStatusBar() {
     var y = 1030;
     var src = isLive() ? 'LIVE  //  DATA ADSB.FI + ADSBDB' : 'SIM FEED  //  55°37\'N 012°39\'E';
-    text('STATUS: ' + src + '  //  TRAFFIC ' + pad(view.length), MAP.x, y, { size: 22, color: C.text, spacing: 2 });
+    var count = isLive() && live.total > view.length ? pad(view.length) + ' OF ' + live.total : pad(view.length);
+    text('STATUS: ' + src + '  //  TRAFFIC ' + count, MAP.x, y, { size: 22, color: C.text, spacing: 2 });
     text('↑↓ SELECT   ←→ BOARD   OK TAGS   BACK HOME', W - MAP.x, y, { size: 22, color: C.text, spacing: 2, align: 'right' });
   }
 
@@ -544,7 +573,7 @@
   function draw(t, now) {
     if (!staticLayer) bakeStatic();
     K.blit(staticLayer);
-    K.header('EKCH // TERMINAL TRAFFIC MONITOR', now);
+    K.header(AP.icao + ' // TERMINAL TRAFFIC MONITOR', now);
     var sweep = drawSweep(t);
     var sel = selectedFlight();
     var selPoint = null;
@@ -580,9 +609,10 @@
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.clip();
       ctx.beginPath();
-      window.COASTLINE.forEach(function (line) {
+      // coast, and lakes and rivers too: Berlin and Paris have no coast
+      AP.coast().concat(AP.water ? AP.water() : []).forEach(function (line) {
         line.forEach(function (pt, i) {
-          var x = cx + (pt[0] - CPH.lon) * k * COS0, y = cy - (pt[1] - CPH.lat) * k;
+          var x = cx + (pt[0] - CENTER.lon) * k * COS0, y = cy - (pt[1] - CENTER.lat) * k;
           if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
       });
@@ -625,7 +655,7 @@
       ctx.stroke();
     }
     view.forEach(function (v) {
-      var x = cx + (v.lon - CPH.lon) * k * COS0, y = cy - (v.lat - CPH.lat) * k;
+      var x = cx + (v.lon - CENTER.lon) * k * COS0, y = cy - (v.lat - CENTER.lat) * k;
       var ang = Math.atan2(y - cy, x - cx);
       var since = ((a - ang) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
       ctx.globalAlpha = 0.45 + 0.55 * (1 - Math.min(1, since / Math.PI));

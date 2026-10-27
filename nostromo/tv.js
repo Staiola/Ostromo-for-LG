@@ -52,8 +52,10 @@
     'font:1.3vw "Share Tech Mono",monospace;letter-spacing:0.2em;transition:opacity 600ms;';
   wrap.appendChild(tag);
 
-  // webOS plays HLS natively; desktop Chrome (the Mac preview) needs hls.js
-  function native() { return video.canPlayType('application/vnd.apple.mpegurl') !== ''; }
+  // webOS plays HLS natively; desktop Chrome (the Mac preview) needs hls.js.
+  // Android's WebView says "maybe", but its native HLS is the old MediaPlayer
+  // path, which stalled on re-tune in testing, so it uses hls.js too.
+  function native() { return !window.OstromoAndroid && video.canPlayType('application/vnd.apple.mpegurl') !== ''; }
 
   function loadHls(cb) {
     if (window.Hls) return cb();

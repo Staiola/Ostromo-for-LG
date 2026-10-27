@@ -86,7 +86,7 @@ npx -y -p @webos-tools/cli ares-novacom --device tv --getkey
 Type the passphrase from the TV when it asks. Then, from the folder with the downloaded file:
 
 ```bash
-npx -y -p @webos-tools/cli ares-install -d tv ostromo_0.9.2.ipk
+npx -y -p @webos-tools/cli ares-install -d tv ostromo_0.10.0.ipk
 ```
 
 ```bash

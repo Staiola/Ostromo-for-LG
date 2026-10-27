@@ -1,6 +1,7 @@
-// Proxy for Energi Data Service. The API only answers browser requests
-// without an Origin header, so a page (or the TV's web engine) can't call it
-// directly. Only the datasets the power screen uses are passed through.
+// Proxy for Energi Data Service and NYISO. Energi Data Service only answers
+// browser requests without an Origin header, and NYISO sends no CORS headers,
+// so a page (or the TV's web engine) can't call either directly. Only what
+// the power screen uses is passed through.
 // Plain Node with https.get, so it can run as the webOS JS service too.
 'use strict';
 
@@ -18,7 +19,7 @@ function get(url) {
       res.setEncoding('utf8');
       res.on('data', function (d) { body += d; });
       res.on('end', function () {
-        if (res.statusCode !== 200) return reject(new Error('Energi Data Service HTTP ' + res.statusCode));
+        if (res.statusCode !== 200) return reject(new Error(url + ' HTTP ' + res.statusCode));
         resolve(body);
       });
     });
@@ -39,4 +40,19 @@ function fetchDataset(dataset, query) {
   });
 }
 
-module.exports = { fetchDataset: fetchDataset };
+// NYISO day-ahead zonal prices for one day (YYYYMMDD, New York time) as the
+// CSV NYISO publishes; tomorrow's appears around 11:00 New York time
+var NYISO = 'https://mis.nyiso.com/public/csv/damlbmp/';
+
+function fetchNyiso(day) {
+  if (!/^\d{8}$/.test(day || '')) return Promise.reject(new Error('bad day: ' + day));
+  var url = NYISO + day + 'damlbmp_zone.csv';
+  var hit = cache[url];
+  if (hit && Date.now() - hit.at < CACHE_MS) return Promise.resolve(hit.body);
+  return get(url).then(function (body) {
+    cache[url] = { at: Date.now(), body: body };
+    return body;
+  });
+}
+
+module.exports = { fetchDataset: fetchDataset, fetchNyiso: fetchNyiso };

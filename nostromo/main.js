@@ -35,7 +35,7 @@
     var contacts = window.Radar.flights().length;
     var power = window.Power.summary(), cfg = window.UNTERFACE_POWER || { off: true };
     return [
-      cfg.off ? leader('GRID', 'OFFLINE') : leader('GRID ' + cfg.area, power ? power.now.toFixed(2) + ' KR/KWH' : 'ACQUIRING'),
+      cfg.off ? leader('GRID', 'OFFLINE') : leader('GRID ' + cfg.area, power ? window.Power.format(power.now) + ' ' + window.Power.UNIT : 'ACQUIRING'),
       leader('PERIMETER HDMI', 'SECURE'),
       'STAND BY'
     ];
@@ -333,8 +333,10 @@
       else if (code === KEY.GREEN || code === KEY.G) { go(current === 'power' ? 'home' : 'power'); handled = true; }
       else if (code === KEY.BACK || code === KEY.ESC || code === KEY.BACKSPACE) {
         // appinfo's disableBackHistoryAPI hands BACK to us instead of webOS's
-        // "quit app?" prompt; on home it does nothing, the Home button leaves
+        // "quit app?" prompt; on home it does nothing, the Home button leaves.
+        // Android TV expects BACK on an app's first screen to leave it.
         if (current !== 'home') go('home');
+        else if (window.OstromoAndroid) window.OstromoAndroid.leave();
         handled = true;
       }
     }

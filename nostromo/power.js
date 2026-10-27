@@ -1,6 +1,8 @@
-// Power screen: what a kWh costs right now in DK2, today and tomorrow.
-// Spot price (15-min) and every tariff come from Energi Data Service, fetched
-// through the app's service because the API doesn't answer browsers directly.
+// Power screen: what a kWh costs right now, today and tomorrow.
+// Denmark: spot price (15-min) and every tariff come from Energi Data Service,
+// fetched through the app's service because the API doesn't answer browsers
+// directly. Sweden, Germany and London show one public price per area in the
+// local unit; those APIs answer browsers, so they're fetched straight.
 (function () {
   'use strict';
 
@@ -10,12 +12,16 @@
   // The region, grid company and supplier come from SETUP (settings.js). With
   // power switched off there is nothing to fetch and the screen says so.
   var CFG = window.UNTERFACE_POWER || { off: true };
+  var DK = !CFG.source;   // the full Danish breakdown; elsewhere a single price
+  var UNIT = CFG.unit || 'KR/KWH';
+  var DECIMALS = CFG.decimals === undefined ? 2 : CFG.decimals;
+  var SLOT_MS = 900000;   // everything is cut into 15-minute slots
 
   var SPOT_REFRESH_MS = 30 * 60 * 1000;  // tomorrow's prices land around 13:00
   var TARIFF_REFRESH_MS = 12 * 3600 * 1000;
   var WINDOW_SLOTS = 12; // 3 hours of 15-minute slots
 
-  var spot = [];        // [{ t: Date, kwh: spot kr/kWh }]
+  var spot = [];        // [{ t: Date, kwh: spot price in UNIT }]
   var tariffs = [];     // DatahubPricelist records we care about
   var slots = [];       // [{ t, spot, grid, energinet, tax, markup, vat, total, peak }]
   var lastError = null;
@@ -32,12 +38,149 @@
 
   function loadSpot() {
     var today = new Date(); today.setHours(0, 0, 0, 0);
+    if (CFG.source === 'elpris') return loadElpris(today);
+    if (CFG.source === 'agile') return loadAgile(today);
+    if (CFG.source === 'nyiso') return loadNyiso();
+    if (CFG.source === 'aemo') return loadAemo(today);
     var end = new Date(today.getTime() + 2 * 86400000);
     return q('DayAheadPrices', {
       start: dayString(today) + 'T00:00', end: dayString(end) + 'T00:00',
       filter: JSON.stringify({ PriceArea: [CFG.area] }), sort: 'TimeUTC asc', limit: 400
     }).then(function (rows) {
-      spot = rows.map(function (r) { return { t: new Date(r.TimeUTC + 'Z'), kwh: r.DayAheadPriceDKK / 1000 }; });
+      // EUR/MWh -> ct/kWh for Germany, DKK/MWh -> kr/kWh for Denmark
+      spot = rows.map(function (r) {
+        return { t: new Date(r.TimeUTC + 'Z'), kwh: CFG.source === 'eds-eur' ? r.DayAheadPriceEUR / 10 : r.DayAheadPriceDKK / 1000 };
+      });
+    });
+  }
+
+  function getJSON(url) {
+    return fetch(url, { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error(url + ' HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  // a price that holds from t0 to t1, as 15-minute slots
+  function quarters(t0, t1, kwh, out) {
+    for (var ms = t0; ms < t1; ms += SLOT_MS) out.push({ t: new Date(ms), kwh: kwh });
+  }
+
+  // elprisetjustnu.se (SEK) and hvakosterstrommen.no (NOK), same format: one
+  // file per area and day; tomorrow's appears around 13:00, so only today's
+  // is required
+  function loadElpris(today) {
+    var days = [today, new Date(today.getTime() + 86400000)];
+    var base = CFG.country === 'NO' ? 'https://www.hvakosterstrommen.no/api/v1/prices/' : 'https://www.elprisetjustnu.se/api/v1/prices/';
+    var field = CFG.country === 'NO' ? 'NOK_per_kWh' : 'SEK_per_kWh';
+    return Promise.all(days.map(function (d, i) {
+      var url = base + d.getFullYear() + '/' +
+        pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + '_' + CFG.area + '.json';
+      return getJSON(url).catch(function (e) { if (i === 0) throw e; return []; });
+    })).then(function (lists) {
+      var out = [];
+      lists.forEach(function (list) {
+        list.forEach(function (p) { quarters(Date.parse(p.time_start), Date.parse(p.time_end), p[field] * 100, out); });
+      });
+      spot = out;
+    });
+  }
+
+  // NYISO: hourly day-ahead prices per zone, $/MWh, in New York time with no
+  // zone marked, one CSV per New York day (tomorrow's from about 11:00 there)
+  function nyOffset(utcMs) {
+    // US daylight time: second Sunday in March to first Sunday in November, 2:00 local
+    var y = new Date(utcMs).getUTCFullYear();
+    function sunday(month, nth) {
+      var d = new Date(Date.UTC(y, month, 1));
+      return Date.UTC(y, month, 1 + (7 - d.getUTCDay()) % 7 + (nth - 1) * 7);
+    }
+    var start = sunday(2, 2) + 7 * 3600000, end = sunday(10, 1) + 6 * 3600000;
+    return utcMs >= start && utcMs < end ? -4 : -5;
+  }
+
+  function loadNyiso() {
+    var nyNow = new Date(Date.now() + nyOffset(Date.now()) * 3600000);
+    var days = [0, 1].map(function (i) {
+      var d = new Date(nyNow.getTime() + i * 86400000);
+      return '' + d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate());
+    });
+    return Promise.all(days.map(function (day, i) {
+      return K.data('nyiso', { day: day }).catch(function (e) { if (i === 0) throw e; return { csv: '' }; });
+    })).then(function (files) {
+      var out = [];
+      files.forEach(function (f) {
+        f.csv.split('\n').forEach(function (line) {
+          var c = line.split(',');
+          if (c[1] !== 'N.Y.C.') return;
+          var m = /(\d+)\/(\d+)\/(\d+) (\d+):(\d+)/.exec(c[0]);
+          if (!m) return;
+          var local = Date.UTC(+m[3], +m[1] - 1, +m[2], +m[4], +m[5]);
+          var t = local - nyOffset(local + 5 * 3600000) * 3600000;
+          quarters(t, t + 3600000, parseFloat(c[3]) / 10, out);   // $/MWh -> cents/kWh
+        });
+      });
+      spot = out;
+    });
+  }
+
+  // AEMO: the NEM's 5-minute dispatch prices for the last day, then its
+  // 30-minute forecast, $/MWh, stamped at the END of each interval in market
+  // time (AEST, UTC+10 all year). Averaged into quarters, actual prices
+  // ahead of the forecast, from local midnight on.
+  function loadAemo(today) {
+    return fetch('https://visualisations.aemo.com.au/aemo/apps/api/report/5MIN', {
+      method: 'POST', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeScale: ['30MIN'] })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('AEMO HTTP ' + r.status);
+      return r.json();
+    }).then(function (j) {
+      var rows = (j['5MIN'] || []).filter(function (r) { return r.REGIONID === CFG.area; });
+      var quarters = {}, actual = {};
+      ['ACTUAL', 'FORECAST'].forEach(function (type) {
+        rows.forEach(function (r) {
+          if (r.PERIODTYPE !== type) return;
+          var end = Date.parse(r.SETTLEMENTDATE + '+10:00');
+          var len = type === 'ACTUAL' ? 300000 : 1800000;
+          for (var ms = end - len; ms < end; ms += 300000) {
+            var q = Math.floor(ms / SLOT_MS) * SLOT_MS;
+            if (type === 'FORECAST' && actual[q]) continue;
+            if (type === 'ACTUAL') actual[q] = true;
+            var acc = quarters[q] || (quarters[q] = { sum: 0, n: 0 });
+            acc.sum += r.RRP / 10;   // $/MWh -> c/kWh
+            acc.n++;
+          }
+        });
+      });
+      spot = Object.keys(quarters).map(Number).filter(function (q) { return q >= today.getTime(); }).sort(function (a, b) { return a - b; })
+        .map(function (q) { return { t: new Date(q), kwh: quarters[q].sum / quarters[q].n }; });
+    });
+  }
+
+  // Octopus Agile: half-hourly unit rates, pence incl. VAT. The product code
+  // changes when Octopus relaunches the tariff, so look up the current one.
+  var OCTOPUS = 'https://api.octopus.energy/v1/products/';
+  var agileCode = null;
+
+  function loadAgile(today) {
+    var code = agileCode ? Promise.resolve(agileCode) : getJSON(OCTOPUS + '?brand=OCTOPUS_ENERGY&is_variable=true&page_size=100')
+      .then(function (j) {
+        var p = (j.results || []).filter(function (p) { return /^AGILE-/.test(p.code) && !/OUTGOING/.test(p.code); })[0];
+        if (!p) throw new Error('no Agile tariff listed');
+        return (agileCode = p.code);
+      });
+    return code.then(function (c) {
+      var end = new Date(today.getTime() + 2 * 86400000);
+      return getJSON(OCTOPUS + c + '/electricity-tariffs/E-1R-' + c + '-' + CFG.region + '/standard-unit-rates/' +
+        '?page_size=200&period_from=' + today.toISOString() + '&period_to=' + end.toISOString());
+    }).then(function (j) {
+      var out = [];
+      (j.results || []).slice().reverse().forEach(function (r) {   // newest first
+        quarters(Date.parse(r.valid_from), Date.parse(r.valid_to), r.value_inc_vat, out);
+      });
+      spot = out;
     });
   }
 
@@ -73,6 +216,7 @@
   function rebuild() {
     version++;
     slots = spot.map(function (s) {
+      if (!DK) return { t: s.t, spot: s.kwh, total: s.kwh, peak: false };
       var grid = tariffAt(CFG.gridCode, CFG.gridOwner, s.t);
       var energinet = tariffAt('40000', null, s.t) + tariffAt('41000', null, s.t);
       var tax = tariffAt('EA-001', null, s.t);
@@ -148,7 +292,8 @@
     return price <= lo ? 'LOW' : price >= hi ? 'HIGH' : 'MID';
   }
 
-  function kr(v) { return v.toFixed(2); }
+  // spot can dip just under zero; -0.0 reads like a fault
+  function kr(v) { var s = v.toFixed(DECIMALS); return /^-[0.]+$/.test(s) ? s.slice(1) : s; }
   function hm(d) { return K.hhmm(d); }
 
   // --- drawing ---------------------------------------------------------------
@@ -178,20 +323,24 @@
     }
 
     var pw = text(kr(s.total), x, LEFT.y + 196, { font: TITLE, size: 104, color: C.white, spacing: 4, glow: 14 });
-    text('KR/KWH', x + pw + 16, LEFT.y + 196, { size: 26, color: C.text, spacing: 3 });
-    var next = slots[i + 1];
+    text(UNIT, x + pw + 16, LEFT.y + 196, { size: 26, color: C.text, spacing: 3 });
+    var next = slots[i + 1], eps = 0.5 * Math.pow(10, -DECIMALS);
     if (next) {
-      var arrow = next.total > s.total + 0.005 ? '▲' : next.total < s.total - 0.005 ? '▼' : '■';
+      var arrow = next.total > s.total + eps ? '▲' : next.total < s.total - eps ? '▼' : '■';
       text(arrow + ' NEXT 15 MIN  ' + kr(next.total), x, LEFT.y + 244, { size: 24, color: C.text, spacing: 2 });
     }
 
     var y = LEFT.y + 316;
-    field('SPOT', kr(s.spot), x, y, w);
-    field(s.peak ? 'NETTARIF  PEAK' : 'NETTARIF', kr(s.grid), x, y + 46, w, s.peak ? C.red : null);
-    field('ENERGINET', kr(s.energinet), x, y + 92, w);
-    field('ELAFGIFT', kr(s.tax), x, y + 138, w);
-    field(CFG.supplierName, CFG.supplierMarkup ? kr(s.markup) : 'N/A', x, y + 184, w);
-    field('MOMS 25%', kr(s.vat), x, y + 230, w);
+    if (DK) {
+      field('SPOT', kr(s.spot), x, y, w);
+      field(s.peak ? 'NETTARIF  PEAK' : 'NETTARIF', kr(s.grid), x, y + 46, w, s.peak ? C.red : null);
+      field('ENERGINET', kr(s.energinet), x, y + 92, w);
+      field('ELAFGIFT', kr(s.tax), x, y + 138, w);
+      field(CFG.supplierName, CFG.supplierMarkup ? kr(s.markup) : 'N/A', x, y + 184, w);
+      field('MOMS 25%', kr(s.vat), x, y + 230, w);
+    } else {
+      notes().forEach(function (n, j) { field(n[0], n[1], x, y + j * 46, w); });
+    }
 
     // status pill, "NOT DEEPNAV PRECISE" style
     var by = LEFT.y + 610, b = band(s.total);
@@ -213,30 +362,50 @@
     }
   }
 
+  // what the one price outside Denmark is, and what it leaves out
+  function notes() {
+    if (CFG.source === 'elpris' && CFG.country === 'NO') return [['PRICE', 'NORD POOL SPOT'], ['AREA', CFG.area], ['NETTLEIE', 'EXCL.'], ['AVGIFTER', 'EXCL.'], ['MVA', 'EXCL.']];
+    if (CFG.source === 'elpris') return [['PRICE', 'NORD POOL SPOT'], ['AREA', CFG.area], ['ENERGISKATT', 'EXCL.'], ['NÄTAVGIFT', 'EXCL.'], ['MOMS 25%', 'EXCL.']];
+    if (CFG.source === 'nyiso') return [['PRICE', 'NYISO DAY-AHEAD'], ['ZONE', 'J · N.Y.C.'], ['DELIVERY', 'EXCL.'], ['TAXES', 'EXCL.']];
+    if (CFG.source === 'aemo') return [['PRICE', 'NEM DISPATCH'], ['REGION', CFG.area], ['NETWORK', 'EXCL.'], ['RETAIL', 'EXCL.'], ['GST 10%', 'EXCL.']];
+    if (CFG.source === 'eds-eur') return [['PRICE', 'EPEX DAY-AHEAD'], ['AREA', 'DE-LU'], ['NETZENTGELT', 'EXCL.'], ['STEUERN + UMLAGEN', 'EXCL.'], ['MWST 19%', 'EXCL.']];
+    return [['TARIFF', 'AGILE OCTOPUS'], ['REGION', CFG.region + ' · LONDON'], ['STANDING CHARGE', 'EXCL.'], ['VAT 5%', 'INCL.']];
+  }
+
+  var CHART_TITLE = DK ? 'KR/KWH INCL. TARIFFS + MOMS'
+    : CFG.source === 'agile' ? 'P/KWH AGILE OCTOPUS INCL. VAT' : UNIT + ' SPOT BEFORE TAX + GRID';
+  var SOURCE_NAME = { elpris: (CFG.country === 'NO' ? 'HVAKOSTERSTROMMEN.NO' : 'ELPRISETJUSTNU.SE') + ' // NORD POOL',
+    'eds-eur': 'ENERGI DATA SERVICE // EPEX', agile: 'OCTOPUS ENERGY // AGILE', nyiso: 'NYISO // ZONE J', aemo: 'AEMO // NEM' };
+
   function drawChart(t) {
     frame(CHART.x, CHART.y, CHART.w, CHART.h);
     var x = CHART.x + 34;
-    var tw = text('KR/KWH INCL. TARIFFS + MOMS', x, CHART.y + 58, { size: 22, color: C.amber, spacing: 4 });
+    var tw = text(CHART_TITLE, x, CHART.y + 58, { size: 22, color: C.amber, spacing: 4 });
     K.ctx.fillStyle = C.amber;
     K.ctx.fillRect(x, CHART.y + 66, tw, 2);
-    text('— TOTAL', CHART.x + CHART.w - 280, CHART.y + 58, { size: 22, color: C.text, spacing: 2 });
-    text('— SPOT', CHART.x + CHART.w - 130, CHART.y + 58, { size: 22, color: C.lineDim, spacing: 2, glow: false });
+    if (DK) {
+      text('— TOTAL', CHART.x + CHART.w - 280, CHART.y + 58, { size: 22, color: C.text, spacing: 2 });
+      text('— SPOT', CHART.x + CHART.w - 130, CHART.y + 58, { size: 22, color: C.lineDim, spacing: 2, glow: false });
+    }
     if (!slots.length) return;
 
     var t0 = slots[0].t.getTime(), t1 = slots[slots.length - 1].t.getTime() + 900000;
     var maxP = 0;
     slots.forEach(function (s) { maxP = Math.max(maxP, s.total); });
-    var top = Math.max(1, Math.ceil(maxP * 2) / 2);
+    // gridlines every 0.50 kr, or a rounder step for the bigger units
+    // (an Australian price spike can reach several dollars a kWh)
+    var step = [0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000].filter(function (v) { return maxP / v <= 8; })[0] || 2000;
+    var top = Math.max(step * 2, Math.ceil(maxP / step) * step);
     var X = function (ms) { return PLOT.x0 + (ms - t0) / (t1 - t0) * (PLOT.x1 - PLOT.x0); };
     var Y = function (p) { return PLOT.y1 - Math.max(0, p) / top * (PLOT.y1 - PLOT.y0); };
     var ctx = K.ctx;
 
     // graticule, HP-analyser style
     ctx.setLineDash([3, 8]);
-    for (var p = 0; p <= top + 0.001; p += 0.5) {
+    for (var p = 0; p <= top + step / 1000; p += step) {
       ctx.beginPath(); ctx.moveTo(PLOT.x0, Y(p)); ctx.lineTo(PLOT.x1, Y(p));
       K.glowStroke(C.lineDim, 2);
-      text(p.toFixed(2), PLOT.x0 - 16, Y(p) + 8, { size: 22, color: C.text, align: 'right', glow: false });
+      text(p.toFixed(step < 1 ? 2 : 0), PLOT.x0 - 16, Y(p) + 8, { size: 22, color: C.text, align: 'right', glow: false });
     }
     var hour = 3600000;
     for (var ms = t0; ms <= t1; ms += 3 * hour) {
@@ -274,7 +443,7 @@
       });
       K.glowStroke(color, width);
     }
-    trace(function (s) { return s.spot; }, C.lineDim, 2);
+    if (DK) trace(function (s) { return s.spot; }, C.lineDim, 2);
     trace(function (s) { return s.total; }, C.text, 3);
 
     // cheapest window bracket
@@ -310,7 +479,8 @@
 
   function drawStatusBar() {
     var y = 1030;
-    var src = lastError && !slots.length ? 'NO SIGNAL' : 'DATA ENERGI DATA SERVICE  //  ' + CFG.gridName + '  //  ' + slots.length + ' SLOTS';
+    var src = lastError && !slots.length ? 'NO SIGNAL'
+      : 'DATA ' + (DK ? 'ENERGI DATA SERVICE  //  ' + CFG.gridName : SOURCE_NAME[CFG.source]) + '  //  ' + slots.length + ' SLOTS';
     text('STATUS: ' + src, 96, y, { size: 22, color: C.text, spacing: 2 });
     text('←→ SCRUB   OK NOW   BACK HOME', W - 96, y, { size: 22, color: C.text, spacing: 2, align: 'right' });
   }
@@ -318,7 +488,8 @@
   function drawOff() {
     frame(LEFT.x, LEFT.y, CHART.x + CHART.w - LEFT.x, LEFT.h);
     text('GRID MONITOR OFFLINE', W / 2, 520, { font: K.TITLE, size: 40, color: C.text, spacing: 6, align: 'center' });
-    text('PRICES COVER DENMARK ONLY. CHOOSE A REGION IN SETUP.', W / 2, 590, { size: 24, color: C.lineDim, spacing: 3, align: 'center' });
+    text('PRICES FOR DENMARK, SWEDEN, NORWAY, GERMANY, LONDON,', W / 2, 590, { size: 24, color: C.lineDim, spacing: 3, align: 'center' });
+    text('NEW YORK CITY AND EASTERN AUSTRALIA. CHOOSE ONE IN SETUP.', W / 2, 630, { size: 24, color: C.lineDim, spacing: 3, align: 'center' });
     text('BACK HOME', W - 96, 1030, { size: 22, color: C.text, spacing: 2, align: 'right' });
   }
 
@@ -364,9 +535,10 @@
   }
 
   if (!CFG.off) {
-    refreshTariffs();
+    if (DK) refreshTariffs();
     refreshSpot();
   }
 
-  window.Power = { draw: draw, key: key, summary: summary, reset: function () { cursor = null; } };
+  // UNIT and format() for the home screen and the ticker
+  window.Power = { draw: draw, key: key, summary: summary, reset: function () { cursor = null; }, UNIT: UNIT, format: kr };
 })();

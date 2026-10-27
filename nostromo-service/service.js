@@ -19,9 +19,9 @@ function reply(message, promise) {
   });
 }
 
-// live traffic around Kastrup, normalised (see aircraft.js)
+// { icao, lat, lon }: live traffic around that airport, normalised (see aircraft.js)
 service.register('aircraft', function (message) {
-  reply(message, aircraft.getAircraft());
+  reply(message, aircraft.getAircraft(message.payload));
 });
 
 // { id }: a polar station camera's current still, as base64 JPEG
@@ -37,6 +37,11 @@ service.register('abyss', function (message) {
 // { page }: a DR Tekst-TV page as text lines plus the page numbers it links to
 service.register('teletext', function (message) {
   reply(message, teletext.getPage((message.payload || {}).page));
+});
+
+// { day: 'YYYYMMDD' }: NYISO day-ahead zonal prices, { csv }
+service.register('nyiso', function (message) {
+  reply(message, energy.fetchNyiso((message.payload || {}).day).then(function (csv) { return { csv: csv }; }));
 });
 
 // { dataset: 'DayAheadPrices' | 'DatahubPricelist', query: '<raw query string>' }

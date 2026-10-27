@@ -1,7 +1,9 @@
-// Teletext screen: DR Tekst-TV (via the app's service) on a 40-column grid in
-// Bedstead, a CC0 recreation of the SAA5050 teletext character generator.
-// DR's source is text only, so the classic colours are put back by rule:
-// headings yellow, page numbers cyan, channel names green, the rest white.
+// Teletext screen: DR Tekst-TV (via the app's service), SVT Text (texttv.nu)
+// or ARD Text (fetched straight, both answer browsers), chosen in SETUP, on a
+// 40-column grid in Bedstead, a CC0 recreation of the SAA5050 teletext
+// character generator. The pages come as text, so the classic colours are put
+// back by rule: headings yellow, page numbers cyan, channel names green, the
+// rest white.
 (function () {
   'use strict';
 
@@ -10,7 +12,76 @@
 
   var FONT = '"Bedstead", monospace';
   var TT = { white: '#FFFFFF', yellow: '#FFFF00', cyan: '#00FFFF', green: '#00FF00', red: '#FF2020', blue: '#2040FF', magenta: '#FF00FF' };
-  var INDEX = [[100, 'FORSIDE'], [110, 'NYHEDER'], [200, 'SPORT'], [300, 'TV'], [600, 'RADIO']];
+
+  // a page as text: { page, lines: [40-column rows, row 0 the header], links: [page numbers] }
+  function decode(html) {
+    var t = document.createElement('textarea');
+    t.innerHTML = html.replace(/<[^>]+>/g, '');
+    return t.value.replace(/\u00a0/g, ' ');
+  }
+
+  function linksIn(html) {
+    var out = [], re = />\s*([1-8]\d\d)\s*<\/a>/g, m;
+    while ((m = re.exec(html))) if (out.indexOf(+m[1]) < 0) out.push(+m[1]);
+    return out;
+  }
+
+  function getText(url) {
+    return fetch(url, { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error(url + ' HTTP ' + r.status);
+      return r.text();
+    });
+  }
+
+  var SOURCES = {
+    dr: {
+      index: [[100, 'FORSIDE'], [110, 'NYHEDER'], [200, 'SPORT'], [300, 'TV'], [600, 'RADIO']],
+      channels: /^\s*(DR1|DR2|DR P\d|DR RADIO)/, header: '        DR   S', source: 'DR1 TEKST-TV',
+      words: { missing: '   SIDEN FINDES IKKE ELLER ER TOM', page: 'SIDE', keys: '0-9 SIDE   ↑↓←→ VÆLG   OK GÅ   CH± SIDE   BACK' },
+      get: function (p) { return K.data('teletext', { page: p }); }
+    },
+    // texttv.nu: SVT Text as JSON, each page's rows as HTML lines
+    svt: {
+      index: [[100, 'START'], [101, 'INRIKES'], [104, 'UTRIKES'], [300, 'SPORT'], [400, 'VÄDER']],
+      channels: /^\s*(SVT1|SVT2|SVT24|KUNSKAPSKANALEN|BARNKANALEN)/, header: '        SVT  ', source: 'SVT TEXT',
+      words: { missing: '   SIDAN FINNS INTE ELLER ÄR TOM', page: 'SIDA', keys: '0-9 SIDA   ↑↓←→ VÄLJ   OK GÅ   CH± SIDA   BACK' },
+      get: function (p) {
+        return getText('https://api.texttv.nu/api/get/' + p + '?app=ostromo').then(function (body) {
+          var html = ((JSON.parse(body)[0] || {}).content || [])[0] || '';
+          var lines = html ? html.split('\n').map(decode) : [];
+          // "   100 SVT Text tisdag 27 okt 2026": the page number goes, the
+          // screen puts its own in front, as DR's header has room for
+          if (lines.length) lines[0] = '        ' + lines[0].trim().replace(/^\d{3}\s*/, '');
+          return { page: p, lines: lines, links: linksIn(html) };
+        });
+      }
+    },
+    // ARD Text's page view: one <div> per row, a <span> per run of cells,
+    // sized 10px a cell; graphics runs carry no text, so pad them out
+    ard: {
+      index: [[100, 'START'], [101, 'NACHRICHTEN'], [200, 'SPORT'], [300, 'PROGRAMM'], [171, 'WETTER']],
+      channels: /^\s*(DAS ERSTE|ARD|ZDF|3SAT|ARTE|PHOENIX)/, header: '        ARD  ', source: 'ARD TEXT',
+      words: { missing: '   SEITE NICHT VORHANDEN ODER LEER', page: 'SEITE', keys: '0-9 SEITE   ↑↓←→ WÄHLEN   OK LOS   CH± SEITE   BACK' },
+      get: function (p) {
+        return getText('https://www.ard-text.de/page_only.php?page=' + p).then(function (html) {
+          var lines = html.split(/<div[^>]*>/).slice(1).map(function (row) {
+            row = row.split('</div>')[0];
+            var line = '', re = /<span[^>]*width:\s*(\d+)px[^>]*>([\s\S]*?)<\/span>/g, m;
+            while ((m = re.exec(row))) {
+              var cell = decode(m[2]);
+              while (cell.length < Math.round(m[1] / 10)) cell += ' ';
+              line += cell;
+            }
+            return line || decode(row);
+          });
+          if (!lines.some(function (l) { return l.trim(); })) lines = [];
+          return { page: p, lines: lines, links: linksIn(html) };
+        });
+      }
+    }
+  };
+  var SRC = SOURCES[(window.Settings.get().teletext)] || SOURCES.dr;
+  var INDEX = SRC.index;
   var REFRESH_MS = 60 * 1000;
 
   // the teletext screen: 40 columns x 25 rows, cells stretched to 4:3 shape
@@ -55,7 +126,7 @@
     typed = '';
     linkIndex = -1;
     loading = p;
-    K.data('teletext', { page: p }).then(function (r) {
+    SRC.get(p).then(function (r) {
       var spots = findSpots(r.lines, r.links);
       pages[p] = { lines: r.lines, links: r.links, spots: spots, at: Date.now() };
       // start on the first page number, so OK or a direction works at once
@@ -190,9 +261,9 @@
   // colour a line the way DR's teletext did, as far as the text tells us
   function runsFor(line, r, sel) {
     var runs = [], base = TT.white;
-    var letters = line.replace(/[^A-Za-zÆØÅæøå]/g, '');
+    var letters = line.replace(/[^A-Za-zÆØÅæøåÄÖÜäöüß]/g, '');
     if (r === 0) base = TT.white;
-    else if (/^\s*(DR1|DR2|DR P\d|DR RADIO)/.test(line)) base = TT.green;
+    else if (SRC.channels.test(line)) base = TT.green;
     else if (letters.length > 3 && letters === letters.toUpperCase()) base = TT.yellow;
     var re = /\b([1-8]\d\d)\b/g, m, at = 0;
     while ((m = re.exec(line))) {
@@ -210,13 +281,13 @@
     var data = pages[page];
     var lines = data && data.lines.length ? data.lines.slice() : [];
     // the header: the page being keyed, or a counter rolling while it searches
-    var header = lines[0] || '        DR   S' + page + '                    ';
+    var header = (lines[0] && lines[0].trim() ? lines[0] : SRC.header + page) + '                                        ';
     var keyed = typed ? 'P' + (typed + '___').slice(0, 3) : loading ? 'P' + (100 + Math.floor(t / 60) % 800) : 'P' + page;
     header = (keyed + '    ' + header.slice(8)).slice(0, 40);
     row(header, 0, [{ from: 0, to: 4, color: typed || loading ? TT.yellow : TT.white }, { from: 4, to: 40, color: TT.white }]);
     if (!data) return;
     if (!lines.length || data.failed) {
-      row('   SIDEN FINDES IKKE ELLER ER TOM', 10, [{ from: 0, to: 40, color: TT.red }]);
+      row(SRC.words.missing, 10, [{ from: 0, to: 40, color: TT.red }]);
       return;
     }
     var link = focus === 'page' ? data.spots[linkIndex] : null;
@@ -253,9 +324,15 @@
     var lx = SIDE.x, lw = SIDE.w, side = focus === 'side';
     frame(lx, PANEL.y, lw, PANEL.h);
     text('INDEX', lx + 26, PANEL.y + 50, { size: 22, color: C.amber, spacing: 5 });
+    // the index entry this page belongs to: the nearest one at or below it,
+    // in the same hundred
+    var current = null;
+    INDEX.forEach(function (it) {
+      if (it[0] <= page && Math.floor(it[0] / 100) === Math.floor(page / 100) && (current === null || it[0] > current)) current = it[0];
+    });
     INDEX.forEach(function (it, i) {
       var item = SIDE_ITEMS[i], y = item.y + 36;
-      var cur = Math.floor(page / 100) * 100 === it[0] && (it[0] !== 100 || page < 110);
+      var cur = it[0] === current;
       var foc = side && sideIndex === i;
       if (foc) { K.ctx.fillStyle = 'rgba(79,245,216,0.16)'; K.ctx.fillRect(item.x, item.y, item.w, item.h); box(item.x, item.y, item.w, item.h, C.cyan, 2); }
       text(String(it[0]), lx + 26, y, { size: 28, color: foc || cur ? C.cyan : C.text, spacing: 2 });
@@ -264,7 +341,7 @@
 
     // readout: what's been keyed so far
     var ry = KEY.top - 74;
-    text('SIDE', lx + 26, ry + 34, { size: 22, color: C.amber, spacing: 5 });
+    text(SRC.words.page, lx + 26, ry + 34, { size: 22, color: C.amber, spacing: 5 });
     var rx = lx + lw - 26 - 120;
     box(rx, ry, 120, 48, typed ? C.cyan : C.line, 2);
     var shown = typed ? (typed + '___').slice(0, 3) : String(page);
@@ -275,13 +352,14 @@
       if (it.key) key3d(it, side && sideIndex === i, sinking === it.id);
     });
 
-    // right: when DR captured this page (some pages go stale)
+    // right: when the broadcaster captured this page (some pages go stale);
+    // without a time in the header, when it was fetched
     var rx = PANEL.x + PANEL.w + 30, rw = W - 96 - rx;
     frame(rx, PANEL.y, rw, PANEL.h);
     text('SIGNAL', rx + 26, PANEL.y + 50, { size: 22, color: C.amber, spacing: 5 });
     // the header carries DR's capture time: "DR   S110  tir 20 okt   22:15:34"
-    var m = data && data.lines[0] ? /(man|tir|ons|tor|fre|lør|søn)\s.*$/i.exec(data.lines[0]) : null;
-    var stamp = m ? m[0].replace(/\s+/g, ' ').trim() : '---';
+    var m = data && data.lines[0] ? /(man|tir|ons|tor|fre|lør|søn)\s.*\d:\d\d.*$/i.exec(data.lines[0]) : null;
+    var stamp = m ? m[0].replace(/\s+/g, ' ').trim() : data && !data.failed ? 'FETCHED ' + K.hhmm(new Date(data.at)) : '---';
     text('PAGE', rx + 26, PANEL.y + 110, { size: 22, color: C.text, spacing: 2 });
     text(String(page), rx + rw - 26, PANEL.y + 110, { font: TITLE, size: 26, color: C.white, align: 'right' });
     text('CAPTURED', rx + 26, PANEL.y + 166, { size: 22, color: C.text, spacing: 2 });
@@ -289,19 +367,19 @@
     text('LINKS', rx + 26, PANEL.y + 260, { size: 22, color: C.text, spacing: 2 });
     text(data ? String(data.links.length) : '-', rx + rw - 26, PANEL.y + 260, { size: 24, color: C.white, align: 'right' });
     text('SOURCE', rx + 26, PANEL.y + 316, { size: 22, color: C.text, spacing: 2 });
-    text('DR1 TEKST-TV', rx + 26, PANEL.y + 352, { size: 22, color: C.white, spacing: 1 });
+    text(SRC.source, rx + 26, PANEL.y + 352, { size: 22, color: C.white, spacing: 1 });
   }
 
   function draw(t, now) {
     var ctx = K.ctx;
     ctx.fillStyle = C.bg;
     ctx.fillRect(0, 0, W, K.H);
-    K.header('TELETEXT // DR TEKST-TV', now);
+    K.header('TELETEXT // ' + SRC.source, now);
     box(PANEL.x, PANEL.y, PANEL.w, PANEL.h, C.line, 2);
     drawPage(t);
     drawSide(now);
-    text('STATUS: TEXT SERVICE  //  DR1  //  ' + (loading ? 'SEARCHING' : 'PAGE ' + page), 96, 1030, { size: 22, color: C.text, spacing: 2 });
-    text('0-9 SIDE   ↑↓←→ VÆLG   OK GÅ   CH± SIDE   BACK', W - 96, 1030, { size: 22, color: C.text, spacing: 2, align: 'right' });
+    text('STATUS: TEXT SERVICE  //  ' + SRC.source + '  //  ' + (loading ? 'SEARCHING' : 'PAGE ' + page), 96, 1030, { size: 22, color: C.text, spacing: 2 });
+    text(SRC.words.keys, W - 96, 1030, { size: 22, color: C.text, spacing: 2, align: 'right' });
   }
 
   function key(code) {

@@ -318,9 +318,14 @@
     });
   };
 
-  // webOS system service call; rejects off-TV
+  // webOS system service call; rejects off-TV. On Android TV the app's own
+  // bridge (android-tv/, Launcher.kt) answers the application manager calls.
   K.luna = function (uri, params) {
     return new Promise(function (resolve, reject) {
+      if (window.OstromoAndroid) {
+        var res = JSON.parse(window.OstromoAndroid.call(uri, JSON.stringify(params || {})));
+        return res.returnValue === false ? reject(res) : resolve(res);
+      }
       if (typeof window.PalmServiceBridge === 'undefined') return reject(new Error('Not running on webOS'));
       var bridge = new window.PalmServiceBridge();
       bridge.onservicecallback = function (msg) {

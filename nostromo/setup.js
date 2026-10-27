@@ -9,7 +9,7 @@
 
   var LIST = { x: 96, y: 136, w: 1060, h: 844 };
   var INFO = { x: 1180, y: 136, w: 644, h: 844 };
-  var ROW_H = 44;
+  var ROW_H = 42;
 
   var draft = null;
   var sel = 0;
@@ -29,6 +29,7 @@
       list.push({ label: 'PORT ' + name, kind: 'port', i: i });
     });
     list.push({ group: 'TELEMETRY', label: 'POWER PRICES', kind: 'power' });
+    list.push({ label: 'RADAR AIRPORT', kind: 'airport' });
     list.push({ group: 'SYSTEMS', label: 'TELETEXT', kind: 'teletext' });
     list.push({ label: 'SOUNDS', kind: 'sound' });
     list.push({ group: ' ', label: 'SAVE & RESTART', kind: 'save' });
@@ -41,7 +42,8 @@
       case 'device': var d = draft.inputs[r.i].device; return d === 'off' ? '-- OFF --' : d;
       case 'port': return 'HDMI ' + draft.inputs[r.i].port;
       case 'power': return S.POWER[draft.power].label;
-      case 'teletext': return draft.teletext ? 'ON' : 'OFF';
+      case 'airport': var ap = window.AIRPORTS[draft.airport]; return ap.city + ' · ' + ap.iata;
+      case 'teletext': return S.TELETEXT[draft.teletext].label;
       case 'sound': return S.SOUND_LABELS[draft.sound];
     }
     return '';
@@ -59,7 +61,8 @@
       case 'device': draft.inputs[r.i].device = cycle(S.DEVICES, draft.inputs[r.i].device, dir); break;
       case 'port': draft.inputs[r.i].port = cycle([1, 2, 3, 4], draft.inputs[r.i].port, dir); break;
       case 'power': draft.power = cycle(S.POWER_CHOICES, draft.power, dir); break;
-      case 'teletext': draft.teletext = !draft.teletext; break;
+      case 'airport': draft.airport = cycle(window.AIRPORT_CHOICES, draft.airport, dir); break;
+      case 'teletext': draft.teletext = cycle(S.TELETEXT_CHOICES, draft.teletext, dir); break;
       case 'sound': draft.sound = cycle(S.SOUND_CHOICES, draft.sound, dir); break;
     }
   }
@@ -79,10 +82,20 @@
       case 'port': return ['THE HDMI SOCKET ON THE TV', 'IT IS PLUGGED INTO.'];
       case 'power':
         var p = S.POWER[draft.power];
-        if (p.off) return ['NO PRICE DATA.', 'PRICES COME FROM ENERGINET', 'AND COVER DENMARK ONLY.'];
+        if (p.off) return ['NO PRICE DATA.', 'PRICES COVER DENMARK, SWEDEN,', 'NORWAY, GERMANY, LONDON,', 'NEW YORK CITY AND', 'EASTERN AUSTRALIA.'];
+        if (p.source === 'elpris') return ['NORD POOL SPOT FOR ' + p.area + ',', 'IN ' + (p.country === 'NO' ? 'ØRE' : 'ÖRE') + ', BEFORE TAXES,', 'GRID FEE AND VAT.'];
+        if (p.source === 'aemo') return ['NEM 5-MINUTE PRICE FOR ' + p.area + ',', 'IN CENTS, WHOLESALE, BEFORE', 'NETWORK, RETAIL AND GST.', 'WHAT AMBER CUSTOMERS PAY ON.'];
+        if (p.source === 'nyiso') return ['NYISO DAY-AHEAD, ZONE J,', 'IN CENTS, WHOLESALE, BEFORE', 'DELIVERY CHARGES AND TAX.'];
+        if (p.source === 'eds-eur') return ['EPEX DAY-AHEAD FOR GERMANY,', 'IN CENT, BEFORE GRID FEES,', 'LEVIES AND VAT.'];
+        if (p.source === 'agile') return ['OCTOPUS AGILE, REGION ' + p.region + '.', 'WHAT A KWH COSTS ON THE', 'TARIFF, PENCE INCL. VAT.'];
         if (p.gridOwner) return ['SPOT PRICE FOR ' + p.area, 'PLUS ' + p.gridName + ' NETTARIF,', p.supplierName + ' MARKUP, TAXES, VAT.'];
         return ['SPOT PRICE FOR ' + p.area, 'PLUS STATE TARIFFS, TAX, VAT.', 'NO GRID COMPANY NETTARIF.'];
-      case 'teletext': return ['DR TEKST-TV IN THE', 'SYSTEMS GROUP. DANISH.', 'OFF LEAVES THE CELL EMPTY.'];
+      case 'airport':
+        var a = window.AIRPORTS[draft.airport];
+        return ['LIVE TRAFFIC AROUND ' + a.icao, a.title[0] + ', ' + a.city + '.', 'RADAR, BOARDS AND THE', 'HOME SCREEN FOLLOW IT.'];
+      case 'teletext':
+        if (draft.teletext === 'off') return ['NO TELETEXT.', 'OFF LEAVES THE CELL EMPTY.'];
+        return [S.TELETEXT[draft.teletext].name + ' IN THE', 'SYSTEMS GROUP, LIVE PAGES', 'FROM THE BROADCASTER.'];
       case 'sound':
         if (draft.sound === 'a') return ['RECORDED SOUNDS,', 'ON THIS TV ONLY.'];
         if (draft.sound === 'b') return ['SYNTHESISED SOUNDS:', 'TYPING, TRACKER, GUN.'];
@@ -99,7 +112,7 @@
     K.header('SETUP // SYSTEM CONFIGURATION', now);
 
     frame(LIST.x, LIST.y, LIST.w, LIST.h);
-    var x = LIST.x + 40, y = LIST.y + 50, vx = LIST.x + 330, vw = LIST.w - 330 - 40;
+    var x = LIST.x + 40, y = LIST.y + 40, vx = LIST.x + 330, vw = LIST.w - 330 - 40;
     list.forEach(function (r, i) {
       if (r.group) {
         if (r.group.trim()) {
@@ -107,7 +120,7 @@
           ctx.fillStyle = C.amber;
           ctx.fillRect(x, y + 31, gw, 2);
         }
-        y += 38;
+        y += 34;
       }
       var on = i === sel, top = y, h = ROW_H - 8;
       if (r.kind === 'save') {
@@ -136,9 +149,7 @@
     help(r).forEach(function (line, i) {
       text(line, ix, INFO.y + 180 + i * 40, { size: 22, color: C.text, spacing: 2 });
     });
-    text('SAVED ON THIS TV ONLY.', ix, INFO.y + INFO.h - 110, { size: 20, color: C.lineDim, spacing: 2, glow: false });
-    text('THE RADAR AIRPORT IS FIXED', ix, INFO.y + INFO.h - 74, { size: 20, color: C.lineDim, spacing: 2, glow: false });
-    text('TO KASTRUP FOR NOW.', ix, INFO.y + INFO.h - 44, { size: 20, color: C.lineDim, spacing: 2, glow: false });
+    text('SAVED ON THIS TV ONLY.', ix, INFO.y + INFO.h - 44, { size: 20, color: C.lineDim, spacing: 2, glow: false });
 
     text('STATUS: ' + (dirty() ? 'CHANGES PENDING' : 'CONFIGURATION LOADED'), 96, 1030,
       { size: 22, color: dirty() ? C.amber : C.text, spacing: 2 });
