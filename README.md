@@ -21,7 +21,7 @@ More about it, with video: [staiola.studio/apps/ostromo](https://staiola.studio/
 
 ## Try it
 
-Version 0.10.1 is a beta. Download `ostromo_0.10.1.ipk` from the
+Version 0.11.0 is a beta. Download `ostromo_0.11.0.ipk` from the
 [latest release](https://github.com/Staiola/Ostromo-for-LG/releases/latest) and follow
 **[the install guide](INSTALL.md)**. It uses LG's free Developer Mode, so nothing is rooted, and it can be
 installed by hand or by asking Claude Code to do it.
@@ -92,6 +92,12 @@ was made that way.
 - Like it? You can [support Ostromo on Ko-fi](https://ko-fi.com/F2F0LWM3Y).
 
 ## Notes
+
+**3 November 2026.** Version 0.11. In SETUP, OK on a channel opens a grid of the apps it can launch, nine
+to a page, and Jellyfin and Moonlight are among them now. (LG doesn't give a developer-mode app the list of
+everything installed, so on LG it's the apps Ostromo knows.) The power price no longer stalls on ACQUIRING
+when the TV's clock runs ahead of the price area, as an LG left on summer time does around midnight, and
+a refused request is tried again after a minute instead of half an hour. Installing over 0.10 keeps your setup.
 
 **28 October 2026.** Version 0.10.1 is for the new [Android TV version](https://github.com/Staiola/Ostromo-for-Android-TV):
 there, a streaming tile now finds its app by its Android package name before its title. On an LG TV it works
