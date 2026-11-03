@@ -9,7 +9,7 @@
   // The grid, row by row (5 per row): three viewing apps from SETUP, then
   // two of the system's own screens. An empty slot is null.
   var SETUP = window.Settings.get();
-  function viewing(i) { var k = SETUP.viewing[i]; return k === 'none' ? null : window.Settings.APPS[k]; }
+  function viewing(i) { return window.Settings.appFor(SETUP.viewing[i]); }
   var APPS = [
     viewing(0), viewing(1), viewing(2),
     { name: 'COMMS', code: 'NTS', screen: 'radio', foot: 'NTS LIVE' },

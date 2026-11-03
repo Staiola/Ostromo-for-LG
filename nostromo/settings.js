@@ -22,9 +22,36 @@
     appletv: { name: 'APPLE TV', code: 'ATV', id: 'com.apple.appletv', android: ['com.apple.atve.androidtv.appletv'], match: /apple tv/i },
     spotify: { name: 'SPOTIFY', code: 'SPT', id: 'spotify-beehive', android: ['com.spotify.tv.android'], match: /spotify/i },  // webOS id not checked
     plex: { name: 'PLEX', code: 'PLX', id: 'cdp-30', android: ['com.plexapp.android'], match: /plex/i },                   // webOS id not checked
+    jellyfin: { name: 'JELLYFIN', code: 'JLF', id: 'org.jellyfin.webos', android: ['org.jellyfin.androidtv'], match: /jellyfin/i },  // webOS id not checked
+    moonlight: { name: 'MOONLIGHT', code: 'MNL', id: 'com.limelight.webos', android: ['com.limelight'], match: /moonlight/i },     // webOS id not checked
     drtv: { name: 'DR TV', code: 'DR', screen: 'tv', foot: 'DR1 · DR2 · TVA' }      // Denmark only
   };
-  var APP_CHOICES = ['none', 'netflix', 'youtube', 'prime', 'disney', 'hbo', 'appletv', 'spotify', 'plex', 'drtv'];
+  var APP_CHOICES = ['none', 'netflix', 'youtube', 'prime', 'disney', 'hbo', 'appletv', 'spotify', 'plex', 'jellyfin', 'moonlight', 'drtv'];
+
+  // Any other app on the TV: a viewing slot holds { id, name } instead of a
+  // key, the id being what the TV lists it as (an Android package name or a
+  // webOS app id) and the name its title when it was picked.
+  function isOther(v) {
+    return !!v && typeof v === 'object' && typeof v.id === 'string' && /^[\w.\-]{1,200}$/.test(v.id) &&
+      typeof v.name === 'string' && v.name.length > 0 && v.name.length <= 80;
+  }
+  // a tile code from the title: initials of up to three words, or a single
+  // word's first letter and the consonants after it (JELLYFIN -> JLY)
+  function codeOf(name) {
+    var words = name.toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+    if (!words.length) return 'APP';
+    if (words.length > 1) return words.slice(0, 3).map(function (w) { return w[0]; }).join('');
+    var w = words[0], code = w[0];
+    for (var i = 1; i < w.length && code.length < 3; i++) {
+      if ('AEIOU'.indexOf(w[i]) < 0 && w[i] !== code[code.length - 1]) code += w[i];
+    }
+    return code;
+  }
+  // what a viewing slot launches: a known app, another app, or null when empty
+  function appFor(v) {
+    if (isOther(v)) return { name: v.name.toUpperCase(), code: codeOf(v.name), id: v.id, other: true };
+    return APPS[v] || null;
+  }
 
   var DEVICES = ['off', 'APPLE TV', 'PLAYSTATION 5', 'XBOX', 'NINTENDO SWITCH', 'CHROMECAST', 'BLU-RAY',
     'PC', 'CABLE BOX', 'GAME CONSOLE', 'MEDIA PLAYER'];
@@ -130,7 +157,11 @@
   function clean(s) {
     var out = copy(DEFAULTS);
     if (!s) return out;
-    if (Array.isArray(s.viewing)) for (var i = 0; i < 6; i++) if (APP_CHOICES.indexOf(s.viewing[i]) >= 0) out.viewing[i] = s.viewing[i];
+    if (Array.isArray(s.viewing)) for (var i = 0; i < 6; i++) {
+      var v = s.viewing[i];
+      if (APP_CHOICES.indexOf(v) >= 0) out.viewing[i] = v;
+      else if (isOther(v)) out.viewing[i] = { id: v.id, name: v.name };
+    }
     if (Array.isArray(s.inputs)) for (var j = 0; j < 2; j++) {
       var inp = s.inputs[j] || {};
       if (DEVICES.indexOf(inp.device) >= 0) out.inputs[j].device = inp.device;
@@ -158,7 +189,7 @@
   try { skipBoot = sessionStorage.getItem(SKIP_BOOT) === '1'; sessionStorage.removeItem(SKIP_BOOT); } catch (e) { /* fine */ }
 
   window.Settings = {
-    APPS: APPS, APP_CHOICES: APP_CHOICES, TELETEXT: TELETEXT, TELETEXT_CHOICES: TELETEXT_CHOICES, SOUND_CHOICES: SOUND_CHOICES, SOUND_LABELS: SOUND_LABELS, DEVICES: DEVICES, POWER: POWER, POWER_CHOICES: POWER_CHOICES,
+    APPS: APPS, APP_CHOICES: APP_CHOICES, appFor: appFor, TELETEXT: TELETEXT, TELETEXT_CHOICES: TELETEXT_CHOICES, SOUND_CHOICES: SOUND_CHOICES, SOUND_LABELS: SOUND_LABELS, DEVICES: DEVICES, POWER: POWER, POWER_CHOICES: POWER_CHOICES,
     get: function () { return copy(current); },
     configured: function () { return configured; },
     skipBoot: function () { return skipBoot; },
