@@ -19,6 +19,7 @@
 
   var SPOT_REFRESH_MS = 30 * 60 * 1000;  // tomorrow's prices land around 13:00
   var TARIFF_REFRESH_MS = 12 * 3600 * 1000;
+  var RETRY_MS = 60 * 1000;               // after a failed fetch
   var WINDOW_SLOTS = 12; // 3 hours of 15-minute slots
 
   var spot = [];        // [{ t: Date, kwh: spot price in UNIT }]
@@ -31,10 +32,23 @@
 
   function q(dataset, params) {
     var query = Object.keys(params).map(function (k) { return k + '=' + encodeURIComponent(params[k]); }).join('&');
-    return K.data('eds', { dataset: dataset, query: query }).then(function (j) { return j.records || []; });
+    // a refusal (429, too many requests) has no records: an error, so it's asked again soon
+    return K.data('eds', { dataset: dataset, query: query }).then(function (j) {
+      if (!j || !j.records) throw new Error((j && j.message) || 'no records from ' + dataset);
+      return j.records;
+    });
   }
 
   function dayString(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
+  // A TV whose clock runs ahead of the price area (a wrong time zone, summer
+  // time left on) starts "today" before the area does, and the slot playing
+  // now would be missing. So prices are asked for from the day before, and
+  // kept from today's start or the slot playing now, whichever is earlier.
+  function keepFrom(today, list) {
+    var from = Math.min(today.getTime(), Math.floor(Date.now() / SLOT_MS) * SLOT_MS);
+    return list.filter(function (s) { return s.t.getTime() >= from; });
+  }
 
   function loadSpot() {
     var today = new Date(); today.setHours(0, 0, 0, 0);
@@ -42,15 +56,15 @@
     if (CFG.source === 'agile') return loadAgile(today);
     if (CFG.source === 'nyiso') return loadNyiso();
     if (CFG.source === 'aemo') return loadAemo(today);
-    var end = new Date(today.getTime() + 2 * 86400000);
+    var start = new Date(today.getTime() - 86400000), end = new Date(today.getTime() + 2 * 86400000);
     return q('DayAheadPrices', {
-      start: dayString(today) + 'T00:00', end: dayString(end) + 'T00:00',
+      start: dayString(start) + 'T00:00', end: dayString(end) + 'T00:00',
       filter: JSON.stringify({ PriceArea: [CFG.area] }), sort: 'TimeUTC asc', limit: 400
     }).then(function (rows) {
       // EUR/MWh -> ct/kWh for Germany, DKK/MWh -> kr/kWh for Denmark
-      spot = rows.map(function (r) {
+      spot = keepFrom(today, rows.map(function (r) {
         return { t: new Date(r.TimeUTC + 'Z'), kwh: CFG.source === 'eds-eur' ? r.DayAheadPriceEUR / 10 : r.DayAheadPriceDKK / 1000 };
-      });
+      }));
     });
   }
 
@@ -68,9 +82,9 @@
 
   // elprisetjustnu.se (SEK) and hvakosterstrommen.no (NOK), same format: one
   // file per area and day; tomorrow's appears around 13:00, so only today's
-  // is required
+  // is required (yesterday's is for a TV clock that runs ahead, see keepFrom)
   function loadElpris(today) {
-    var days = [today, new Date(today.getTime() + 86400000)];
+    var days = [today, new Date(today.getTime() + 86400000), new Date(today.getTime() - 86400000)];
     var base = CFG.country === 'NO' ? 'https://www.hvakosterstrommen.no/api/v1/prices/' : 'https://www.elprisetjustnu.se/api/v1/prices/';
     var field = CFG.country === 'NO' ? 'NOK_per_kWh' : 'SEK_per_kWh';
     return Promise.all(days.map(function (d, i) {
@@ -82,7 +96,7 @@
       lists.forEach(function (list) {
         list.forEach(function (p) { quarters(Date.parse(p.time_start), Date.parse(p.time_end), p[field] * 100, out); });
       });
-      spot = out;
+      spot = keepFrom(today, out.sort(function (a, b) { return a.t - b.t; }));
     });
   }
 
@@ -231,15 +245,17 @@
   }
 
   function refreshSpot() {
+    var failed = false;
     loadSpot().then(function () { lastError = null; rebuild(); })
-      .catch(function (e) { lastError = e; })
-      .then(function () { setTimeout(refreshSpot, SPOT_REFRESH_MS); });
+      .catch(function (e) { lastError = e; failed = true; })
+      .then(function () { setTimeout(refreshSpot, failed ? RETRY_MS : SPOT_REFRESH_MS); });
   }
 
   function refreshTariffs() {
+    var failed = false;
     loadTariffs().then(rebuild)
-      .catch(function (e) { lastError = e; })
-      .then(function () { setTimeout(refreshTariffs, TARIFF_REFRESH_MS); });
+      .catch(function (e) { lastError = e; failed = true; })
+      .then(function () { setTimeout(refreshTariffs, failed ? RETRY_MS : TARIFF_REFRESH_MS); });
   }
 
   // --- derived numbers -------------------------------------------------------
