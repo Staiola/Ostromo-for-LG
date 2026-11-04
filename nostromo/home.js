@@ -47,10 +47,11 @@
   var focus = { row: 0, col: 0 };
   var ghost = null; // where focus just was, for a one-frame phosphor trail
   var exec = null;  // the running EXECUTE overlay
+  var howto = false; // the how-to-update box, while it's open
   var bootedAt = Date.now();
 
   function itemAt(row, col) {
-    if (row < 0) return { kind: 'settings' };
+    if (row < 0) return { kind: chip() === 'update' ? 'update' : 'settings' };
     if (col < 0) return { kind: row === 0 ? 'power' : 'radar' };
     if (row < 2) {
       var a = APPS[row * COLS + col];
@@ -68,11 +69,17 @@
     return 0;
   }
 
-  // the SETUP chip, top right of the main panel; ↑ from the top row
+  // the SETUP chip, top right of the main panel; ↑ from the top row. When a
+  // newer version is out, an UPDATE chip sits over the viewing tiles, just
+  // left of the dashed rule; ← and → go between the two.
   var CHIP = { x: MAIN.x + MAIN.w - PADX - 170, y: MAIN.y + 26, w: 170, h: 44 };
+  var SYS_X = GRID_X + VIEW_COLS * (TILE_W + GAP) + SPLIT;
+  var UPDATE_CHIP = { x: SYS_X - (SPLIT + GAP) / 2 - 20 - 280, y: CHIP.y, w: 280, h: 44 };
+  var chipSel = 'setup';
+  function chip() { return chipSel === 'update' && hasUpdate() ? 'update' : 'setup'; }
 
   function rectOf(row, col) {
-    if (row < 0) return CHIP;
+    if (row < 0) return chip() === 'update' ? UPDATE_CHIP : CHIP;
     if (col < 0 && row === 0) return POWER;
     if (col < 0) return { x: MINI.x - MINI.r, y: MINI.y - MINI.r, w: MINI.r * 2, h: MINI.r * 2 };
     if (row < 2) return { x: GRID_X + col * (TILE_W + GAP) + (col >= VIEW_COLS ? SPLIT : 0), y: ROW_Y[row], w: TILE_W, h: TILE_H };
@@ -84,7 +91,11 @@
     var before = rectOf(focus.row, focus.col);
     var row = focus.row, col = focus.col;
     if (dCol) {
-      if (row < 0) return;
+      if (row < 0) {
+        var to = dCol < 0 && hasUpdate() ? 'update' : 'setup';
+        if (to !== chip()) { chipSel = to; ghost = { rect: before, at: Date.now() }; }
+        return;
+      }
       if (row === 2 && col >= 0) {
         var to = inputAt(col) + dCol;
         col = to < 0 ? -1 : to >= INPUTS.length ? col : INPUT_COLS[to][0];
@@ -119,8 +130,34 @@
       .catch(function () {});
   }
 
+  // --- newer versions ---------------------------------------------------------
+
+  // A Developer Mode app can't install itself, so this only says a newer
+  // release is out and how to put it on from a computer. Asked once per start.
+  var update = null; // { current, latest } when GitHub has a newer one
+  var RELEASES = 'https://api.github.com/repos/Staiola/Ostromo-for-LG/releases/latest';
+
+  function hasUpdate() { return !!update; }
+
+  function versionCode(v) {
+    var p = String(v || '').replace(/^v/, '').split('.').map(Number);
+    return p.length === 3 && p.every(function (n) { return n >= 0; }) ? p[0] * 10000 + p[1] * 100 + p[2] : -1;
+  }
+
+  function checkUpdate() {
+    if (!window.fetch) return;
+    Promise.all([
+      fetch('appinfo.json').then(function (r) { return r.json(); }),
+      fetch(RELEASES, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    ]).then(function (res) {
+      var current = res[0].version, latest = String(res[1].tag_name || '').replace(/^v/, '');
+      if (versionCode(current) > 0 && versionCode(latest) > versionCode(current)) update = { current: current, latest: latest };
+    }).catch(function () {});
+  }
+
   function execute(target) {
     if (target.kind === 'empty') return;
+    if (target.kind === 'update') { howto = true; return; }
     if (target.kind !== 'app' && target.kind !== 'input') { window.Shell.go(target.kind); return; }
     var item = target.item;
     exec = { name: item.name, id: item.id, at: Date.now(), result: null };
@@ -135,6 +172,10 @@
   }
 
   function key(code) {
+    if (howto) {
+      if (code === 461 || code === 27 || code === 8 || code === 13) howto = false;
+      return true;
+    }
     if (exec) {
       if (code === 461 || code === 27 || code === 8) { exec = null; return true; }
       return true;
@@ -231,10 +272,16 @@
     K.frame(MAIN.x, MAIN.y, MAIN.w, MAIN.h);
     var sys = rectOf(0, VIEW_COLS);
     sectionLabel('VIEWING', '// ' + K.pad(LINKED) + ' LINKED', GRID_X, MAIN.y + 58);
-    var chipOn = focus.row < 0;
+    var chipOn = focus.row < 0 && chip() === 'setup';
     if (chipOn) { K.frame(CHIP.x, CHIP.y, CHIP.w, CHIP.h, C.cyan); K.brackets(CHIP.x, CHIP.y, CHIP.w, CHIP.h, C.pink, 14, 6); }
     else K.box(CHIP.x, CHIP.y, CHIP.w, CHIP.h, C.lineDim, 2);
     text('SETUP', CHIP.x + CHIP.w / 2, CHIP.y + 30, { size: 22, color: chipOn ? C.white : C.text, spacing: 4, align: 'center' });
+    if (hasUpdate()) {
+      var u = UPDATE_CHIP, upOn = focus.row < 0 && chip() === 'update';
+      if (upOn) { K.frame(u.x, u.y, u.w, u.h, C.amber); K.brackets(u.x, u.y, u.w, u.h, C.pink, 14, 6); }
+      else K.box(u.x, u.y, u.w, u.h, C.amber, 2);
+      text('▲ ' + update.latest + ' AVAILABLE', u.x + u.w / 2, u.y + 30, { size: 22, color: upOn ? C.white : C.amber, spacing: 3, align: 'center' });
+    }
     sectionLabel('SYSTEMS', '', sys.x, MAIN.y + 58);
     // a dashed rule between the two groups
     var ctx = K.ctx, dx = sys.x - (SPLIT + GAP) / 2;
@@ -267,9 +314,9 @@
     var y = ROW_Y[2] + TILE_H + 40, x = GRID_X, w = MAIN.w - PADX * 2, h = 110;
     K.box(x, y, w, h, C.line, 2);
     var target = itemAt(focus.row, focus.col);
-    var NAMES = { settings: 'SYSTEM SETUP', radar: IATA + ' RADAR', power: 'POWER GRID ' + POWER_AREA, radio: 'COMMS // NTS LIVE', outposts: 'OUTPOST MONITOR',
+    var NAMES = { update: 'NEW VERSION ' + (update ? update.latest : ''), settings: 'SYSTEM SETUP', radar: IATA + ' RADAR', power: 'POWER GRID ' + POWER_AREA, radio: 'COMMS // NTS LIVE', outposts: 'OUTPOST MONITOR',
       teletext: 'TELETEXT // ' + (window.Settings.TELETEXT[SETUP.teletext].short || ''), tv: 'VISUAL FEED // DR', sentry: 'SENTRY // LD 567-C', empty: 'NO CARRIER' };
-    var IDS = { settings: 'CONFIG', radar: 'SCREEN 02', power: 'SCREEN 03', radio: 'BROADCAST RX', outposts: 'REMOTE NET',
+    var IDS = { update: update ? 'V' + update.current + ' ▸ V' + update.latest : '', settings: 'CONFIG', radar: 'SCREEN 02', power: 'SCREEN 03', radio: 'BROADCAST RX', outposts: 'REMOTE NET',
       teletext: window.Settings.TELETEXT[SETUP.teletext].name || 'TELETEXT', tv: 'DR BROADCAST NET', sentry: 'PERIMETER DEFENCE', empty: '----' };
     var name = NAMES[target.kind] || target.item.name;
     var id = IDS[target.kind] || target.item.id;
@@ -277,7 +324,7 @@
     var iw = text('>INQUIRY: ' + name, x + 26, y + 48, io);
     blinks.push({ str: '_', x: x + 26 + iw + 2, y: y + 48, opts: io });
     text('TARGET ID  ' + id.toUpperCase(), x + 26, y + 86, { size: 22, color: C.text, spacing: 2 });
-    var kind = { settings: 'CONFIGURATION', app: 'STREAMING SERVICE', input: 'EXTERNAL SOURCE', power: 'GRID MONITOR', radar: 'TRAFFIC DISPLAY',
+    var kind = { update: 'INSTALL FROM A COMPUTER', settings: 'CONFIGURATION', app: 'STREAMING SERVICE', input: 'EXTERNAL SOURCE', power: 'GRID MONITOR', radar: 'TRAFFIC DISPLAY',
       radio: 'SIGNAL INTERCEPT', outposts: 'REMOTE FEEDS', teletext: 'TEXT SERVICE', tv: 'LIVE BROADCAST', sentry: 'DEFENCE GRID',
       empty: 'CHANNEL VACANT' }[target.kind];
     text(kind, x + w - 26, y + 48, { size: 22, color: C.amber, spacing: 3, align: 'right' });
@@ -364,6 +411,26 @@
     if (exec.result && age > 3200) exec = null;
   }
 
+  // how to put the new version on: from a computer on the same Wi-Fi
+  function drawHowto() {
+    if (!howto) return;
+    var ctx = K.ctx;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
+    ctx.fillRect(0, 0, W, K.H);
+    ctx.restore();
+    var w = 1060, h = 420, x = (W - w) / 2, y = (K.H - h) / 2;
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(x, y, w, h);
+    K.frame(x, y, w, h, C.amber);
+    text('>VERSION ' + update.latest + ' IS OUT', x + 50, y + 84, { font: K.TITLE, size: 34, color: C.white, spacing: 4, glow: 12 });
+    text('THIS TV HAS ' + update.current + '. AN LG TV INSTALLS IT FROM A COMPUTER', x + 50, y + 136, { size: 22, color: C.text, spacing: 2 });
+    text('ON THE SAME WI-FI. YOUR SETUP IS KEPT.', x + 50, y + 170, { size: 22, color: C.text, spacing: 2 });
+    var lines = ['1  DEVELOPER MODE ON THE TV: CHECK IT IS ON', '2  DOWNLOAD OSTROMO_' + update.latest + '.IPK FROM', '   GITHUB.COM/STAIOLA/OSTROMO-FOR-LG', '3  INSTALL IT AS THE FIRST TIME (INSTALL.MD)'];
+    lines.forEach(function (l, i) { text(l, x + 50, y + 230 + i * 36, { size: 22, color: i === 2 ? C.amber : C.white, spacing: 2 }); });
+    text('OK / BACK ▸ CLOSE', x + w - 50, y + h - 30, { size: 22, color: C.cyan, spacing: 3, align: 'right' });
+  }
+
   // everything that only changes per second, per blink or per key press
   // blinking cursors, drawn over the cached layer so the blink doesn't redraw it
   var blinks = [];
@@ -380,7 +447,7 @@
 
   function draw(t, now) {
     var power = window.Power.summary();
-    var key = [focus.row, focus.col, Math.floor(now.getTime() / 1000),
+    var key = [focus.row, focus.col, chip(), hasUpdate(), Math.floor(now.getTime() / 1000),
       power ? power.now.toFixed(2) + power.cheapest : '', window.Radar.flights().length,
       window.Radio.nowPlaying() || ''].join('|');
     K.cached('home', key, function () { drawStill(t, now); });
@@ -390,9 +457,11 @@
     drawGhost();
     drawTicker(t);
     drawExec();
+    drawHowto();
   }
 
   resolveAppIds();
+  checkUpdate();
 
   window.Home = { draw: draw, key: key };
 })();

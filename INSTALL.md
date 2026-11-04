@@ -83,10 +83,11 @@ npx -y -p @webos-tools/cli ares-setup-device -a tv -i "host=192.168.1.50" -i "po
 npx -y -p @webos-tools/cli ares-novacom --device tv --getkey
 ```
 
-Type the passphrase from the TV when it asks. Then, from the folder with the downloaded file:
+Type the passphrase from the TV when it asks. Then, from the folder with the downloaded file (use its
+name, with the version you downloaded):
 
 ```bash
-npx -y -p @webos-tools/cli ares-install -d tv ostromo_0.10.1.ipk
+npx -y -p @webos-tools/cli ares-install -d tv ostromo_0.11.1.ipk
 ```
 
 ```bash
@@ -119,8 +120,28 @@ Its README explains how to run it. It only works while that computer is awake an
 
 - **Developer Mode times out.** Apps installed this way stop opening when the Developer Mode session runs
   out. The Developer Mode app shows the time left; open it now and then and extend the session.
-- **Updating:** install a newer `.ipk` the same way. Your setup is kept.
+- **Updating:** see [Updating](#updating) below.
 - **Removing:** see [Going back to how it was](#going-back-to-how-it-was) below.
+
+## Updating
+
+On an LG TV, Ostromo can't install a new version itself: a Developer Mode app can only be installed from a
+computer on the same Wi-Fi as the TV. From 0.11.1 it tells you when there is one: an amber **▲ … AVAILABLE**
+chip appears at the top of the home screen (press ↑, then ←), and OK on it shows these steps.
+
+1. On the TV, open **Developer Mode**. Check that Dev Mode is on and the session has time left, and note the
+   IP address if it has changed.
+2. On the computer, download the new `ostromo_x.y.z.ipk` from the
+   [latest release](https://github.com/Staiola/Ostromo-for-LG/releases/latest).
+3. Install it the way you installed it the first time: with Claude (step 2), webOS Dev Manager or
+   `ares-install` (step 3). The TV is already set up on that computer, so only the install itself is needed.
+
+Your setup is kept. If the TV's IP address has changed, point the computer at the new one first: in Dev
+Manager, edit the TV; on the command line:
+
+```bash
+npx -y -p @webos-tools/cli ares-setup-device -m tv -i "host=192.168.1.50"
+```
 
 ## What works where
 
