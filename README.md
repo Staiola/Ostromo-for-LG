@@ -21,7 +21,7 @@ More about it, with video: [staiola.studio/apps/ostromo](https://staiola.studio/
 
 ## Try it
 
-Version 0.11.0 is a beta. Download `ostromo_0.11.0.ipk` from the
+Version 0.11.1 is a beta. Download `ostromo_0.11.1.ipk` from the
 [latest release](https://github.com/Staiola/Ostromo-for-LG/releases/latest) and follow
 **[the install guide](INSTALL.md)**. It uses LG's free Developer Mode, so nothing is rooted, and it can be
 installed by hand or by asking Claude Code to do it.
@@ -92,6 +92,10 @@ was made that way.
 - Like it? You can [support Ostromo on Ko-fi](https://ko-fi.com/F2F0LWM3Y).
 
 ## Notes
+
+**4 November 2026.** Version 0.11.1 says when a newer version is out: an amber chip on the home screen,
+and OK on it shows how to install it from a computer, which is the only way on an LG TV. The install guide
+has a section on updating. From this version on, you'll see the next one on the TV.
 
 **3 November 2026.** Version 0.11. In SETUP, OK on a channel opens a grid of the apps it can launch, nine
 to a page, and Jellyfin and Moonlight are among them now. (LG doesn't give a developer-mode app the list of
